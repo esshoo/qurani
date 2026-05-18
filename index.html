@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0c0e" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./assets/icons/icon-192.png" type="image/png" />
+  <title>منصة قراءة القرآن - نسخة تجريبية v0.8.2</title>
+
+  <link rel="stylesheet" href="./styles/base.css" />
+  <link rel="stylesheet" href="./styles/layout.css" />
+  <link rel="stylesheet" href="./styles/reader.css" />
+  <link rel="stylesheet" href="./styles/modals.css" />
+  <link rel="stylesheet" href="./styles/notes.css" />
+  <link rel="stylesheet" href="./styles/sharing.css" />
+  <link rel="stylesheet" href="./styles/search.css" />
+  <link rel="stylesheet" href="./styles/test.css" />
+  <link rel="stylesheet" href="./styles/themes.css" />
+  <link rel="stylesheet" href="./styles/responsive.css" />
+
+</head>
+<body>
+  <header class="topbar" aria-label="أدوات عامة">
+    <div class="toolbar-group">
+      <button id="btnSettings" class="iconbtn" title="الإعدادات" type="button">⚙️</button>
+      <button id="btnSearch" class="iconbtn" title="بحث" type="button">🔍</button>
+      <button id="btnLibrary" class="iconbtn" title="مكتبتي" type="button">📚</button>
+      <button id="btnWird" class="iconbtn" title="الورد والختمة" type="button">🌙</button>
+      <button id="btnTest" class="iconbtn" title="وضع الاختبار" type="button">🧪</button>
+      <button id="btnFocus" class="iconbtn" title="وضع التركيز" type="button">🧘</button>
+      <button id="btnInstallApp" class="iconbtn install-btn" title="تثبيت التطبيق" type="button" hidden>⬇️</button>
+    </div>
+    <button class="chip" id="readingModeChip" title="وضع القراءة" type="button">وضع: قراءة مستمرة</button>
+    <button id="btnPlay" class="iconbtn" title="تشغيل/إيقاف الصوت" type="button">🔊</button>
+  </header>
+
+  <main class="main" id="mainArea">
+    <section class="reader" id="reader" aria-live="polite">
+      <div class="reader-inner">
+        <div id="wirdWidget" class="wird-widget" hidden></div>
+        <div class="surah-title" id="surahTitle" hidden></div>
+        <div class="bismillah" id="bismillah" hidden>﷽</div>
+        <div id="content" class="quran-content"></div>
+      </div>
+    </section>
+
+    <aside class="tafsir" id="tafsirPanel">
+      <button id="expandTafsir" class="expand-btn" title="تكبير/تصغير" type="button">⤢</button>
+      <div id="tafsirContent">
+        <h3>التفسير <span class="muted-text">(يظهر عند اختيار آية)</span></h3>
+        <p class="muted-text">اضغط على آية ثم اختر التفسير.</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="bottombar" aria-label="تنقل بين الوحدات">
+    <button id="btnNext" class="navbtn" title="التالي" type="button">⬅️ التالي</button>
+    <button id="locator" class="chip" title="التنقل السريع" type="button">تحميل...</button>
+    <button id="btnPrev" class="navbtn" title="السابق" type="button">السابق ➡️</button>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="focusControls" class="focus-controls" hidden aria-label="تنقل وضع التركيز">
+    <button id="btnFocusPrev" class="focus-navbtn" title="السابق" type="button">السابق ➡️</button>
+    <button id="btnExitFocus" class="focus-exit" type="button">↩️ خروج</button>
+    <button id="btnFocusNext" class="focus-navbtn" title="التالي" type="button">⬅️ التالي</button>
+  </div>
+
+  <div class="modal" id="settingsModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-backdrop></div>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <h3 id="settingsTitle">الإعدادات</h3>
+        <button class="iconbtn" data-modal-close type="button">✖️</button>
+      </div>
+      <div id="settingsContent" class="settings-grid"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="ayahActionsModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-backdrop></div>
+    <section class="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="ayahActionsTitle">
+      <div class="sheet-handle"></div>
+      <h3 id="ayahActionsTitle">خيارات الآية</h3>
+      <div id="ayahActionsContent"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="tafsirModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-backdrop></div>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="tafsirModalTitle">
+      <div class="modal-head">
+        <h3 id="tafsirModalTitle">التفسير</h3>
+        <button class="iconbtn" data-modal-close type="button">✖️</button>
+      </div>
+      <div id="tafsirModalContent" class="modal-scroll"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="pickerModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-backdrop></div>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+      <div class="modal-head">
+        <h3 id="pickerTitle">التنقل السريع</h3>
+        <button class="iconbtn" data-modal-close type="button">✖️</button>
+      </div>
+      <div id="pickerContent" class="modal-scroll"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="notesModal" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <section class="modal-panel modal-panel-large" role="dialog" aria-modal="true" aria-labelledby="notesTitle">
+      <div class="modal-head">
+        <h3 id="notesTitle">الملاحظات</h3>
+        <button class="iconbtn" id="btnCloseNotes" type="button">✖️</button>
+      </div>
+      <div id="notesContent"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="shareModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-backdrop></div>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+      <div class="modal-head">
+        <h3 id="shareTitle">مشاركة كصورة</h3>
+        <button class="iconbtn" data-modal-close type="button">✖️</button>
+      </div>
+      <div id="shareContent"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="searchModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-backdrop></div>
+    <section class="modal-panel modal-panel-large" role="dialog" aria-modal="true" aria-labelledby="searchTitle">
+      <div class="modal-head">
+        <h3 id="searchTitle">بحث قرآني</h3>
+        <button class="iconbtn" data-modal-close type="button">✖️</button>
+      </div>
+      <div id="searchContent"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="libraryModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-backdrop></div>
+    <section class="modal-panel modal-panel-large" role="dialog" aria-modal="true" aria-labelledby="libraryTitle">
+      <div class="modal-head">
+        <h3 id="libraryTitle">مكتبتي</h3>
+        <button class="iconbtn" data-modal-close type="button">✖️</button>
+      </div>
+      <div id="libraryContent" class="modal-scroll"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="wirdModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-backdrop></div>
+    <section class="modal-panel modal-panel-large" role="dialog" aria-modal="true" aria-labelledby="wirdTitle">
+      <div class="modal-head">
+        <h3 id="wirdTitle">الورد والختمة</h3>
+        <button class="iconbtn" data-modal-close type="button">✖️</button>
+      </div>
+      <div id="wirdContent" class="modal-scroll"></div>
+    </section>
+  </div>
+
+
+
+  <div class="modal" id="testModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-backdrop></div>
+    <section class="modal-panel modal-panel-large" role="dialog" aria-modal="true" aria-labelledby="testTitle">
+      <div class="modal-head">
+        <h3 id="testTitle">وضع الاختبار</h3>
+        <button class="iconbtn" data-modal-close type="button">✖️</button>
+      </div>
+      <div id="testContent" class="modal-scroll"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="confirmModal" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <section class="confirm-panel" role="dialog" aria-modal="true">
+      <h3 id="confirmTitle">تأكيد</h3>
+      <p id="confirmMessage"></p>
+      <div class="modal-actions">
+        <button id="confirmCancel" class="navbtn" type="button">رجوع</button>
+        <button id="confirmOk" class="navbtn danger" type="button">خروج بدون حفظ</button>
+      </div>
+    </section>
+  </div>
+
+  <audio id="player" hidden></audio>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

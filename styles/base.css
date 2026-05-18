@@ -1,0 +1,124 @@
+@font-face {
+  font-family: "Amiri Quran";
+  src: url("../assets/fonts/AmiriQuran.ttf");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Kitab";
+  src: url("../assets/fonts/Kitab-Regular.woff2") format("woff2");
+  font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #0b0c0e;
+  --paper: #0f1115;
+  --ink: #f5f7fa;
+  --muted: #9aa4b2;
+  --brand: #2dd4bf;
+  --brand-ink: #061218;
+  --card: #0d1014;
+  --line: rgba(255, 255, 255, 0.12);
+  --soft: rgba(255, 255, 255, 0.06);
+  --soft-strong: rgba(255, 255, 255, 0.14);
+  --surface: rgba(255,255,255,.075);
+  --surface-2: rgba(255,255,255,.115);
+  --field-bg: #151922;
+  --field-ink: #f8fafc;
+  --field-muted: #aab4c3;
+  --option-bg: #151922;
+  --option-ink: #f8fafc;
+  --shadow: 0 24px 90px rgba(0,0,0,.45);
+  --overlay: rgba(15, 17, 21, 0.68);
+  --radius: 16px;
+  --gap: 14px;
+  --quran-font: "Amiri Quran", serif;
+  --ui-font: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans Arabic", Arial, sans-serif;
+  --line-height: 2.6;
+  --quran-size: 28px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--brand), transparent 88%), transparent 34vw),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--ui-font);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+button, input, select, textarea { font: inherit; }
+input, select, textarea { accent-color: var(--brand); }
+button { color: var(--ink); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.muted-text { color: var(--muted); }
+.toolbar-group { display: flex; gap: 8px; align-items: center; }
+.iconbtn, .navbtn, .chip {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--surface), var(--soft));
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+.iconbtn { padding: 10px 14px; }
+.navbtn { padding: 10px 14px; }
+.chip { padding: 7px 13px; border-radius: 999px; }
+.iconbtn:hover, .navbtn:hover, .chip:hover { background: var(--soft-strong); }
+.iconbtn:active, .navbtn:active, .chip:active { transform: scale(0.98); }
+.navbtn.primary, .iconbtn.primary { background: var(--brand); color: var(--brand-ink); font-weight: 800; }
+.navbtn.danger { border-color: rgba(239, 68, 68, 0.55); color: #fecaca; }
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 78px;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,.78);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  padding: 10px 16px;
+  z-index: 3000;
+  max-width: min(92vw, 520px);
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+}
+[hidden] { display: none !important; }
+
+
+/* Professional form controls with reliable contrast across themes */
+select, input[type="number"], input[type="text"], input[type="color"], textarea {
+  background: var(--field-bg);
+  color: var(--field-ink);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+select {
+  color-scheme: inherit;
+  min-height: 44px;
+}
+select option, select optgroup {
+  background: var(--option-bg);
+  color: var(--option-ink);
+}
+input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--field-muted), transparent 22%); }
+input[type="color"] {
+  min-height: 44px;
+  padding: 4px;
+  cursor: pointer;
+}
+.inline-field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.inline-field input[type="color"] { flex: 1 1 auto; }
+.inline-field .navbtn { white-space: nowrap; }
+::selection {
+  background: color-mix(in srgb, var(--brand), transparent 58%);
+  color: var(--ink);
+}

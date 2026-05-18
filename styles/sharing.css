@@ -1,0 +1,110 @@
+.share-editor {
+  display: grid;
+  gap: 14px;
+}
+
+.share-controls-card {
+  display: grid;
+  grid-template-columns: 1.2fr .6fr .8fr;
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--soft);
+}
+
+.share-seg {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.share-seg button {
+  all: unset;
+  cursor: pointer;
+  padding: 9px 12px;
+  background: var(--soft);
+  border-inline-end: 1px solid var(--line);
+}
+
+.share-seg button.active {
+  background: var(--brand);
+  color: #061218;
+  font-weight: 800;
+}
+
+.share-count-field input {
+  min-width: 90px;
+}
+
+.share-canvas-wrap {
+  display: grid;
+  place-items: center;
+  max-height: min(66dvh, 760px);
+  overflow: auto;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.20);
+  border: 1px solid var(--line);
+}
+
+#shareCanvas {
+  width: min(100%, 520px);
+  height: auto;
+  border-radius: 18px;
+  box-shadow: 0 18px 55px rgba(0,0,0,.35);
+  background: #fffaf0;
+}
+
+.share-sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 12px 8px 4px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card), transparent 100%), var(--card) 35%);
+}
+
+@media (max-width: 768px) {
+  .share-controls-card {
+    grid-template-columns: 1fr;
+  }
+
+  .share-canvas-wrap {
+    max-height: 58dvh;
+  }
+
+  #shareCanvas {
+    width: min(100%, 390px);
+  }
+
+  .share-sticky-actions .navbtn {
+    flex: 1 1 150px;
+  }
+}
+
+
+#shareModal .modal-panel {
+  inline-size: min(980px, 96vw);
+  max-block-size: 94dvh;
+}
+.share-editor {
+  min-block-size: 0;
+}
+.share-seg {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 4px;
+  background: var(--soft);
+  overflow: hidden;
+}
+.share-seg button {
+  border-radius: 10px;
+  color: var(--ink);
+}
+.share-seg button:not(.active):hover {
+  background: var(--soft-strong);
+}

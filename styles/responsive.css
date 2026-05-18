@@ -1,0 +1,27 @@
+@media (max-width: 820px) {
+  .topbar, .bottombar { padding: 8px; gap: 6px; }
+  .main { flex-direction: column; padding: 6px; gap: 6px; }
+  .reader { width: 100%; flex: 1 1 auto; border-radius: 14px; }
+  .tafsir { width: 100%; flex: 0 0 120px; border-radius: 14px 14px 0 0; }
+  .main.tafsir-expanded #tafsirPanel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 58vh !important;
+    width: 100vw !important;
+    z-index: 1100;
+    border-radius: 18px 18px 0 0;
+  }
+  .settings-grid, .form-grid, .action-grid { grid-template-columns: 1fr 1fr; }
+  .iconbtn, .navbtn { padding: 9px 11px; }
+  .chip { padding: 7px 10px; }
+  .toolbar-group { gap: 5px; }
+  .modal-panel { inline-size: 96vw; max-block-size: 88dvh; }
+  #drawingCanvas { block-size: 340px; }
+}
+@media (max-width: 520px) {
+  .settings-grid, .form-grid { grid-template-columns: 1fr; }
+  .action-grid { grid-template-columns: 1fr 1fr; }
+  .share-card { padding: 28px 18px; min-height: 360px; }
+}

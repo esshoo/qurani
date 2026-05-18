@@ -1,0 +1,100 @@
+.surah-title {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: min(420px, 92%);
+  margin: 4px auto 12px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--muted);
+  font-weight: 700;
+}
+.bismillah {
+  text-align: center;
+  font-size: calc(var(--quran-size) * 1.08);
+  margin: 8px 0 18px;
+  font-family: var(--quran-font);
+  font-weight: 800;
+  opacity: 0.95;
+}
+.quran-content, .ayah, .surah-block, .page-block, .unit-block {
+  font-family: var(--quran-font);
+  font-size: var(--quran-size);
+  line-height: var(--line-height);
+}
+.ayah-item {
+  display: inline;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+.ayah-item:hover { background: rgba(45, 212, 191, 0.10); }
+.ayah-item.selected {
+  background: rgba(45, 212, 191, 0.16);
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.08);
+}
+.ayah-item.playing {
+  background: rgba(255, 214, 102, 0.14);
+}
+.ayah-num {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.9em;
+  height: 1.5em;
+  padding-inline: .25em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  font-family: var(--ui-font);
+  font-size: 0.72em;
+  opacity: 0.88;
+  margin-inline: 0.38ch;
+  vertical-align: 0.1em;
+}
+.tafsir h3, .tafsir h4 {
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  padding-bottom: 8px;
+}
+.tafsir-ayah-text {
+  font-family: var(--quran-font);
+  font-size: 1.25rem;
+  line-height: 2;
+}
+/* ألوان التجويد من النسخة الأصلية */
+.ham_wasl { color: #A0A0A0; font-weight: bold; }
+.laam_shamsiyah { color: #FFA500; font-weight: bold; }
+.madda_normal { color: #00B050; font-weight: bold; }
+.madda_necessary { color: #7030A0; font-weight: bold; }
+.madda_permissible { color: #8E44AD; font-weight: bold; }
+.madda_obligatory_monfasel { color: #00B0F0; font-weight: bold; }
+.madda_obligatory_mottasel { color: #0070C0; font-weight: bold; }
+.idgham_wo_ghunnah { color: #5B9BD5; font-weight: bold; }
+.idgham_ghunnah { color: #007000; font-weight: bold; }
+.qalaqah { color: #FF0000; font-weight: bold; }
+.ghunnah { color: #548235; font-weight: bold; }
+.ikhafa { color: #FF66CC; font-weight: bold; }
+.slnt { color: #D9D9D9; font-weight: bold; }
+.ikhafa_shafawi { color: #F4CCCC; font-weight: bold; }
+.idgham_shafawi { color: #6FA8DC; font-weight: bold; }
+.iqlab { color: #FFD700; font-weight: bold; }
+.idgham_mutajanisayn { color: #00FFFF; font-weight: bold; }
+
+/* v0.3 clearer active recitation state */
+.ayah-item.playing {
+  background: color-mix(in srgb, var(--brand), transparent 78%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand), transparent 88%), inset 0 -0.12em 0 color-mix(in srgb, var(--brand), transparent 48%);
+}
+.ayah-item.playing .ayah-num {
+  background: var(--brand);
+  color: var(--brand-ink);
+  opacity: 1;
+}
+body.focus-mode .ayah-item:hover { background: transparent; }
+body.focus-mode .ayah-item.selected,
+body.focus-mode .ayah-item.playing {
+  border-radius: 10px;
+}

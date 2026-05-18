@@ -1,0 +1,239 @@
+.topbar, .bottombar {
+  position: sticky;
+  z-index: 30;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+}
+.topbar {
+  top: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg), transparent 12%), color-mix(in srgb, var(--bg), transparent 52%));
+}
+.bottombar {
+  bottom: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(0deg, color-mix(in srgb, var(--bg), transparent 12%), color-mix(in srgb, var(--bg), transparent 52%));
+  direction: ltr;
+}
+.bottombar .navbtn, .bottombar .chip { direction: rtl; }
+.main {
+  display: flex;
+  direction: rtl;
+  height: 100%;
+  min-height: 0;
+  gap: 10px;
+  padding: 10px;
+}
+.reader {
+  flex: 1 1 76%;
+  overflow-y: auto;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+  border-radius: var(--radius);
+  padding: clamp(12px, 3vw, 28px);
+  text-align: center;
+  min-height: 0;
+}
+.reader-inner {
+  inline-size: min(980px, 100%);
+  margin-inline: auto;
+}
+.tafsir {
+  flex: 0 0 min(360px, 28vw);
+  overflow-y: auto;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  opacity: 0.96;
+  min-height: 0;
+  position: relative;
+}
+#reader, #tafsirPanel, .modal-scroll, .wheel {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+#reader::-webkit-scrollbar, #tafsirPanel::-webkit-scrollbar, .modal-scroll::-webkit-scrollbar, .wheel::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.expand-btn {
+  position: sticky;
+  top: 8px;
+  inset-inline-start: 8px;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--ink);
+}
+.main.tafsir-expanded .reader { flex-basis: 50%; }
+.main.tafsir-expanded .tafsir { flex-basis: 50%; max-width: none; }
+
+/* v0.3 Focus mode */
+body.focus-mode {
+  grid-template-rows: 1fr;
+  background: var(--paper);
+}
+body.focus-mode .topbar,
+body.focus-mode .bottombar,
+body.focus-mode .tafsir {
+  display: none !important;
+}
+body.focus-mode .main {
+  padding: 0;
+  gap: 0;
+}
+body.focus-mode .reader {
+  border: 0;
+  border-radius: 0;
+  min-height: 100dvh;
+  padding-block: clamp(18px, 5vw, 56px);
+}
+.focus-controls[hidden] { display: none !important; }
+.focus-controls {
+  position: fixed;
+  inset-inline: 50%;
+  transform: translateX(50%);
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card), transparent 7%);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+.focus-exit,
+.focus-navbtn {
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 10px 15px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.focus-navbtn {
+  background: color-mix(in srgb, var(--brand), transparent 86%);
+}
+.focus-exit:hover,
+.focus-navbtn:hover {
+  background: var(--soft-strong);
+}
+
+
+@media (max-width: 560px) {
+  .focus-controls[hidden] { display: none !important; }
+.focus-controls {
+    inset-inline: 8px;
+    transform: none;
+    border-radius: 18px;
+  }
+  .focus-exit,
+  .focus-navbtn {
+    flex: 1;
+    padding-inline: 10px;
+    font-size: .92rem;
+  }
+}
+
+/* v0.4 PWA/offline helpers */
+.install-btn {
+  animation: installPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes installPulse {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+body.is-offline .topbar::after {
+  content: "بدون إنترنت";
+  position: absolute;
+  inset-inline-end: 12px;
+  bottom: -26px;
+  z-index: 40;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, .16);
+  border: 1px solid rgba(245, 158, 11, .35);
+  color: var(--ink);
+  font-size: .78rem;
+  backdrop-filter: blur(8px);
+}
+
+/* Wird / Khatma widget */
+.wird-widget {
+  margin: 0 auto 14px;
+  max-inline-size: min(720px, 96%);
+}
+.wird-mini-card {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.14);
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  color: var(--ink);
+  border-radius: 18px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 7px;
+  text-align: start;
+  box-shadow: 0 12px 30px rgba(0,0,0,.16);
+  cursor: pointer;
+}
+.wird-mini-card:hover {
+  border-color: color-mix(in srgb, var(--brand) 55%, rgba(255,255,255,.15));
+}
+
+.wird-mini-section {
+  display: grid;
+  gap: 6px;
+}
+.wird-mini-section + .wird-mini-section {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(127,127,127,.22);
+}
+body.focus-mode .wird-widget {
+  display: none !important;
+}
+.wird-mini-title {
+  font-weight: 800;
+  color: var(--brand);
+}
+.wird-mini-progress,
+.wird-mini-khatma {
+  font-size: .92rem;
+}
+.wird-mini-bar,
+.progress-bar {
+  display: block;
+  inline-size: 100%;
+  block-size: 9px;
+  border-radius: 999px;
+  background: rgba(127,127,127,.22);
+  overflow: hidden;
+}
+.wird-mini-bar span,
+.progress-bar span {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+  transition: inline-size .25s ease;
+}

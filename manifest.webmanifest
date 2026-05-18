@@ -1,0 +1,16 @@
+{
+  "name": "منصة قراءة القرآن",
+  "short_name": "القرآن",
+  "description": "قارئ قرآن تجريبي يعمل كـ PWA بدون إنترنت للنصوص والملفات الأساسية.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#0b0c0e",
+  "theme_color": "#0b0c0e",
+  "icons": [
+    { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

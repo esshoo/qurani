@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="./essho.png" type="image/x-icon" />
+  <title>منصة قراءة القرآن</title>
+
+  <style>
+    /*
+      الخطوط:
+      يجب أن تكون ملفات الخطوط AmiriQuran.ttf و Kitab-Regular.woff2
+      موجودة في نفس مجلد ملف HTML هذا.
+    */
+    @font-face {
+      font-family: "Amiri Quran";
+      src: url("AmiriQuran.ttf");
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Kitab";
+      src: url("Kitab-Regular.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    /*
+      الخصائص العامة والمتغيرات:
+      تعريف متغيرات الألوان، الخطوط، المسافات، وحجم الخط.
+    */
+    :root {
+      --bg: #0b0c0e; /* خلفية عامة */
+      --paper: #0f1115; /* ورقة القراءة (تتغير ديناميكياً) */
+      --ink: #f5f7fa; /* لون النص الأساسي */
+      --muted: #9aa4b2; /* لون النص الثانوي */
+      --brand: #2dd4bf; /* لون تمييز للأزرار/الاختيار */
+      --card: #0d1014; /* خلفية البطاقات (المودال، التفسير) */
+      --overlay: rgba(15, 17, 21, 0.68); /* خلفية المودال الشفافة */
+      --radius: 14px;
+      --gap: 14px;
+      --quran-font: "Amiri Quran", serif;
+      --ui-font: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans Arabic", Arial;
+      --line-height: 2.6; /* ارتفاع السطر للنص القرآني */
+      --quran-size: 28px; /* حجم النص القرآني */
+    }
+
+    /* إعادة تعيين الأنماط الأساسية */
+    * {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--ui-font);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100vh;
+      min-height: 100dvh;
+      overflow: hidden;
+    }
+
+    /*
+      عناصر واجهة المستخدم:
+      أنماط الشريط العلوي والسفلي، الأزرار، والشرائح (chips).
+    */
+    .topbar,
+    .bottombar {
+      position: sticky;
+      z-index: 30;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+    }
+    .topbar {
+      top: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.12));
+    }
+    .bottombar {
+      bottom: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.12));
+      direction: ltr; /* لترتيب الأزرار من اليسار لليمين */
+    }
+    .bottombar .navbtn,
+    .bottombar .chip {
+      direction: rtl; /* إعادة النص العربي لليمين داخل الأزرار */
+    }
+
+    .chip {
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+    }
+    .iconbtn,
+    .navbtn {
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .iconbtn:hover,
+    .navbtn:hover,
+    .chip:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    /*
+      المحتوى الرئيسي: القارئ والتفسير
+      تم إعادة تنظيم أنماط Flexbox لضمان سلوك متناسق على كل الأحجام.
+    */
+    .main {
+      display: flex;
+      direction: rtl;
+      height: 100%;
+      min-height: 0; /* يسمح بالـ scroll الداخلي */
+    }
+
+    .reader {
+      flex: 1 1 80%; /* 80% على الشاشات الكبيرة */
+      overflow-y: auto;
+      background: var(--paper);
+      border-radius: var(--radius);
+      padding: clamp(10px, 3vw, 26px);
+      text-align: center;
+      min-height: 0;
+    }
+
+    .tafsir {
+      flex: 1 1 20%; /* 20% على الشاشات الكبيرة */
+      overflow-y: auto;
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 12px;
+      opacity: 0.9;
+      min-height: 0;
+      position: relative;
+    }
+    .tafsir h4 {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+      margin-top: 2em;
+    }
+    .tafsir h3 {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+    }
+
+    /*
+      الزر العائم لتكبير نافذة التفسير
+    */
+    #tafsir .expand-btn {
+      position: sticky;
+      top: 8px;
+      inset-inline-start: 8px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--ink);
+    }
+    #tafsir .expand-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /*
+      أنماط النص القرآني
+    */
+    .ayah,
+    .surah-block,
+    .page-block,
+    .unit-block {
+      font-family: var(--quran-font);
+      font-size: var(--quran-size);
+      line-height: var(--line-height);
+    }
+    .bismillah {
+      text-align: center;
+      font-size: 30px;
+      margin: 8px 0 14px;
+      font-family: var(--quran-font);
+      font-weight: 800;
+      opacity: 0.95;
+    }
+    .ayah-num {
+      /* أنماط الشكل الدائري */
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      
+      /* استخدام وحدات em بدلاً من px */
+      width: 1.9em; /* العرض يتناسب مع حجم الخط */
+      height: 1.5em; /* الارتفاع يتناسب مع حجم الخط */
+      
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.9);
+      /* أنماط الخط العام */
+      font-family: var(--ui-font);
+      font-size: 0.9em;
+      opacity: 0.85;
+      margin-inline: 0.4ch;
+    }
+
+    /*
+      المودال (النوافذ المنبثقة):
+      أنماط عامة للمودال والخلفية الشفافة.
+    */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 50;
+      overflow: hidden;
+    }
+    .modal.open {
+      display: grid;
+      place-items: center;
+    }
+    .modal .backdrop {
+      position: absolute;
+      inset: 0;
+      background: var(--overlay);
+    }
+    .modal .panel {
+      position: relative;
+      z-index: 1;
+      inline-size: min(850px, 94vw);
+      max-block-size: 84dvh;
+      overflow: auto;
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    #pickerModal .panel.single {
+      inline-size: min(520px, 94vw);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .grid.single {
+      grid-template-columns: 1fr;
+    }
+
+    /* أنماط حقول الإعدادات داخل المودال */
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    select,
+    input[type="number"],
+    input[type="text"],
+    input[type="color"] {
+      padding: 10px 12px;
+      background: var(--card);
+      color: var(--ink);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+    }
+    select option {
+      background: #fff;
+      color: #111;
+    }
+    input[type="range"] {
+      inline-size: 100%;
+    }
+    .seg {
+      display: inline-flex;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .seg button {
+      all: unset;
+      padding: 8px 12px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .seg button.active {
+      background: var(--brand);
+      color: #061218;
+      font-weight: 800;
+    }
+
+    /* أنماط عجلة الاختيار (Wheel picker) */
+    .wheel {
+      display: grid;
+      grid-auto-rows: 44px;
+      overflow: auto;
+      max-block-size: 50dvh;
+      padding: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+    }
+    .wheel button {
+      all: unset;
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: 10px;
+      text-align: center;
+      margin: 2px 0;
+      background: transparent;
+      color: var(--ink);
+    }
+    .wheel button.near {
+      opacity: 0.55;
+    }
+    .wheel button.selected {
+      background: var(--brand);
+      color: #061218;
+      font-weight: 800;
+    }
+
+    /*
+      إخفاء شريط التمرير (scroll bar) مع الحفاظ على وظيفته
+    */
+    #reader,
+    #tafsir,
+    .modal-content,
+    .scrollable-select,
+    .wheel {
+      scrollbar-width: none; /* فيرفوكس */
+      -ms-overflow-style: none; /* Edge/IE */
+      -webkit-overflow-scrolling: touch; /* iOS */
+    }
+    #reader::-webkit-scrollbar,
+    #tafsir::-webkit-scrollbar,
+    .modal-content::-webkit-scrollbar,
+    .scrollable-select::-webkit-scrollbar,
+    .wheel::-webkit-scrollbar {
+      width: 0px;
+      height: 0px;
+    }
+
+    /*
+      ألوان التجويد:
+      كل لون يمثل حكم تجويدي معين.
+    */
+    .ham_wasl { color: #A0A0A0; font-weight: bold; }
+    .laam_shamsiyah { color: #FFA500; font-weight: bold; }
+    .madda_normal { color: #00B050; font-weight: bold; }
+    .madda_necessary { color: #7030A0; font-weight: bold; }
+    .madda_permissible { color: #8E44AD; font-weight: bold; }
+    .madda_obligatory_monfasel { color: #00B0F0; font-weight: bold; }
+    .madda_obligatory_mottasel { color: #0070C0; font-weight: bold; }
+    .idgham_wo_ghunnah { color: #5B9BD5; font-weight: bold; }
+    .idgham_ghunnah { color: #007000; font-weight: bold; }
+    .qalaqah { color: #FF0000; font-weight: bold; }
+    .ghunnah { color: #548235; font-weight: bold; }
+    .ikhafa { color: #FF66CC; font-weight: bold; }
+    .slnt { color: #D9D9D9; font-weight: bold; }
+    .ikhafa_shafawi { color: #F4CCCC; font-weight: bold; }
+    .idgham_shafawi { color: #6FA8DC; font-weight: bold; }
+    .iqlab { color: #FFD700; font-weight: bold; }
+    .idgham_mutajanisayn { color: #00FFFF; font-weight: bold; }
+
+    /*
+      الاستجابة لـ (Media Queries)
+      أنماط الشاشات الصغيرة (الجوالات) والشاشات الكبيرة.
+    */
+    @media (max-width: 768px) {
+      .main {
+        flex-direction: column;
+        height: calc(100vh - 112px);
+      }
+      .reader {
+        flex: 1 1 90%;
+        width: 100vw;
+      }
+      .tafsir {
+        flex: 1 1 10%;
+        width: 100vw;
+        border-radius: var(--radius) var(--radius) 0 0;
+      }
+      .main.tafsir-expanded #tafsir {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 50vh !important;
+        width: 100vw !important;
+        z-index: 1500;
+        border-radius: 12px 12px 0 0;
+        overflow-y: auto;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .main.tafsir-expanded .reader {
+        flex-basis: 50% !important;
+      }
+      .main.tafsir-expanded .tafsir {
+        flex-basis: 50% !important;
+      }
+    }
+
+    /* أنماط نافذة البحث المنبثقة */
+    .search-modal {
+      display: none;
+      position: fixed;
+      z-index: 1500;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.75);
+    }
+    .search-modal-content {
+      background-color: var(--card);
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      width: 90%;
+      max-width: 800px;
+      border-radius: 8px;
+      position: relative;
+    }
+    .search-close {
+      color: var(--muted);
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .search-close:hover {
+      color: var(--ink);
+    }
+    .search-modal h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      text-align: right;
+    }
+    .search-modal .row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+    .search-modal label {
+      display: grid;
+      gap: 0.25rem;
+      font-size: 0.9rem;
+    }
+    .search-modal input[type="text"] {
+      padding: 0.5rem 0.6rem;
+      min-width: 18rem;
+    }
+    .search-modal select,
+    .search-modal input[type="checkbox"],
+    .search-modal button {
+      padding: 0.5rem 0.6rem;
+    }
+    .search-modal button {
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: var(--brand);
+      color: #061218;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .search-modal .status {
+      opacity: 0.75;
+      font-size: 0.9rem;
+      margin: 0.5rem 0 1rem;
+      display: none;
+    }
+    .search-modal table#output {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    .search-modal table#output td,
+    .search-modal table#output th {
+      padding: 0.5rem;
+      vertical-align: top;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .search-modal table#output td.ayah-number {
+      font-family: var(--ui-font);
+      white-space: nowrap;
+      color: var(--brand);
+      text-align: center;
+    }
+    .search-modal table#output td.ayah-text {
+      font-family: var(--quran-font);
+      font-size: var(--quran-size);
+      line-height: var(--line-height);
+    }
+    .search-modal .search-count {
+      text-align: center;
+      color: var(--muted);
+      padding: 1rem;
+    }
+    .search-modal .sura-header {
+      background: var(--bg);
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.1rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .search-modal mark {
+      background: #ffeb3b;
+      padding: 2px 0;
+      border-radius: 4px;
+      color: #000;
+    }
+    .search-modal .ayah-text {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar" aria-label="أدوات عامة">
+    <div style="display:flex; gap:8px; align-items:center">
+      <button id="btnSettings" class="iconbtn" title="الإعدادات">⚙️</button>
+      <button id="btnSearch" class="iconbtn" title="بحث">🔍</button>
+    </div>
+    <div class="chip" id="readingModeChip" title="وضع القراءة">وضع: قراءة مستمرة</div>
+    <button id="btnPlay" class="iconbtn" title="تشغيل/إيقاف الصوت">🔊</button>
+  </header>
+
+  <main class="main">
+    <section class="reader" id="reader">
+      <div style="inline-size:100%">
+        <div class="bismillah" id="bismillah" hidden>﷽</div>
+        <div id="content"></div>
+      </div>
+    </section>
+
+    <aside class="tafsir" id="tafsir">
+      <button id="expandTafsir" class="expand-btn" title="تكبير/تصغير">⤢</button>
+      <div id="tafsirContent">
+        <h3 style="margin:6px 6px 10px">التفسير <span style="color:var(--muted)">(يتم جلبه آليًا)</span></h3>
+        <p style="color:var(--muted)">سيظهر تفسير الآية الحالية هنا.</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="bottombar" aria-label="تنقل بين الوحدات">
+    <button id="btnNext" class="navbtn" title="التالي">⬅️ التالي</button>
+    <div id="locator" class="chip" title="التنقل السريع">الفاتحة • آية 1</div>
+    <button id="btnPrev" class="navbtn" title="السابق">السابق ➡️</button>
+  </footer>
+
+  <div class="modal" id="settingsModal" aria-hidden="true">
+    <div class="backdrop" data-close></div>
+    <div class="panel">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+        <h3 style="margin:0">الإعدادات</h3>
+        <button class="iconbtn" data-close title="إغلاق">✖️</button>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label>حجم الخط</label>
+          <div style="display:flex; gap:8px; align-items:center">
+            <button class="navbtn" id="fsDec">−</button>
+            <input type="range" id="fsRange" min="15" max="100" step="1" />
+            <button class="navbtn" id="fsInc">＋</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>نوع الخط</label>
+          <select id="fontSelect">
+            <option value="Amiri Quran">Amiri Quran</option>
+            <option value="Kitab">Kitab</option>
+            <option value="serif">Serif النظام</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>لون خلفية ورقة القراءة</label>
+          <input type="color" id="bgPicker" value="#0f1115" />
+        </div>
+
+        <div class="field">
+          <label>ألوان التجويد</label>
+          <div class="seg">
+            <button id="tajOn">مُفعّل</button>
+            <button id="tajOff" class="active">مُلغى</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>عدد تكرار الوحدة</label>
+          <input type="number" id="repeatCount" min="1" max="99" value="1" />
+        </div>
+
+        <div class="field">
+          <label>طريقة العرض</label>
+          <select id="modeSelect">
+            <option value="ayah">آية آية</option>
+			  <option value="page">صفحة صفحة</option>
+            <option value="surah">سورة سورة</option>
+			  <option value="hizb">حزب / أرباع</option>
+            <option value="juz">جزء جزء</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>اختيار التفسير</label>
+          <select id="tafsirSelect">
+            <option value="ar.muyassar" selected>التفسير الميسر</option>
+            <option value="ar.jalalayn">تفسير الجلالين</option>
+            <option value="ar.ibnkatheer">تفسير ابن كثير</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>المقرئ</label>
+          <select id="reciterSelect">
+            <option value="husary_mualim" selected>الحصري (المعلّم)</option>
+            <option value="ghamdi">سعد الغامدي</option>
+            <option value="alafasy">مشاري العفاسي</option>
+            <option value="none">بدون صوت</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="pickerModal" aria-hidden="true">
+    <div class="backdrop" data-close></div>
+    <div class="panel">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+        <h3 style="margin:0">التنقل السريع</h3>
+        <button class="iconbtn" data-close title="إغلاق">✖️</button>
+      </div>
+      <div id="pickerContent" class="grid"></div>
+      <div style="margin-top:12px; display:flex; justify-content:center">
+        <button id="pickerOK" class="navbtn">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="player" hidden></audio>
+
+  <div id="searchModal" class="search-modal">
+    <div class="search-modal-content">
+      <span class="search-close" id="search-close-btn">&times;</span>
+      <h2>بحث قرآني</h2>
+
+      <div class="status muted" id="search-status">يحمل سور القرآن...</div>
+
+      <div class="row">
+        <label>
+          عبارة البحث
+          <input
+            id="term"
+            type="text"
+            placeholder="أدخل عبارة البحث (مثال: كتب)" />
+        </label>
+        <label>
+          الموضع في المقطع
+          <select id="position">
+            <option title="أي موضع في المقطع" value="any" selected>
+              أي موضع
+            </option>
+            <option
+              title="عبارة البحث لا تتصل بما قبلها ولا بما بعدها"
+              value="isolated">
+              منفصل
+            </option>
+            <option
+              title="عبارة البحث لا تتصل بما قبلها وتتصل بما بعدها"
+              value="initial">
+              مبتدئ
+            </option>
+            <option title="عبارة البحث تتصل بما قبلها وما بعدها" value="medial">
+              متوسط
+            </option>
+            <option
+              title="عبارة البحث تتصل بما قبلها ولا تتصل بما بعدها"
+              value="final">
+              منتهي
+            </option>
+          </select>
+        </label>
+        <label
+          title="تجاهل الحركات (علامات التشكيل) أثناء البحث. مثلًا البحث عن «كُتُب» سيجد «كَتَبَ» و«كُتِبَ»">
+          <input id="ignoreMarks" type="checkbox" checked />
+          تجاهل الحركات
+        </label>
+        <label
+          title="تجاهل نقاط الحروف أثناء البحث. مثلًا البحث عن «ب» سيجد أيضاً «ت» و«ث»">
+          <input id="ignoreDots" type="checkbox" checked />
+          تجاهل النقاط
+        </label>
+        <label
+          title="تجاهل الحروف الصغيرة أثناء البحث. مثلًا البحث عن «هـٰذا» سيجد «هذا»">
+          <input id="ignoreSmallLetters" type="checkbox" checked />
+          تجاهل الحروف الصغيرة
+        </label>
+        <button id="run">ابحث</button>
+      </div>
+
+      <table id="output" aria-live="polite"></table>
+    </div>
+  </div>
+
+  <script>
+    /*
+      ====================
+      1. إعدادات عامة وحالة التطبيق
+      ====================
+    */
+    const DATA_URL = './quran.json';
+    const TAFSIR_LABELS = {
+      "ar.muyassar": "التفسير الميسر",
+      "ar.jalalayn": "تفسير الجلالين",
+      "ar.ibnkatheer": "تفسير ابن كثير"
+    };
+    const STORAGE_KEY_SETTINGS = "qapp.settings.v1";
+    const STORAGE_KEY_POINTER = "qapp.pointer.v1";
+
+    const state = {
+      data: null,
+      searchData: null,
+      indexByGlobal: [],
+      indexByPage: new Map(),
+      indexByJuz: new Map(),
+      indexByHizbQuarter: new Map(),
+      showTajweed: false,
+      repeat: 1,
+      mode: 'ayah',
+      hizbPart: 4,
+      quranFont: 'Amiri Quran',
+      quranSize: 28,
+      bg: '#0f1115',
+      readingMode: 'continuous',
+      pointer: { ayahGlobal: 1, surah: 1, page: 1, juz: 1, hizbQuarter: 1, numberInSurah: 1 },
+      tafsir: "ar.muyassar",
+      reciter: "husary_mualim",
+      currentAudioUnit: [],
+      currentAudioIndex: 0
+    };
+    let isPlaying = false;
+    let repeatCounter = 0;
+    let pickerTemp = null;
+    
+    /*
+      ====================
+      2. ربط عناصر DOM
+      ====================
+    */
+    const readerEl = document.getElementById('reader');
+    const contentEl = document.getElementById('content');
+    const bismEl = document.getElementById('bismillah');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const locator = document.getElementById('locator');
+    const settingsModal = document.getElementById('settingsModal');
+    const btnSettings = document.getElementById('btnSettings');
+    const btnSearch = document.getElementById('btnSearch');
+    const fsRange = document.getElementById('fsRange');
+    const fsDec = document.getElementById('fsDec');
+    const fsInc = document.getElementById('fsInc');
+    const fontSelect = document.getElementById('fontSelect');
+    const bgPicker = document.getElementById('bgPicker');
+    const tajOn = document.getElementById('tajOn');
+    const tajOff = document.getElementById('tajOff');
+    const repeatCount = document.getElementById('repeatCount');
+    const modeSelect = document.getElementById('modeSelect');
+    const readingModeChip = document.getElementById('readingModeChip');
+    const tafsirSelect = document.getElementById('tafsirSelect');
+    const reciterSelect = document.getElementById('reciterSelect');
+    const pickerModal = document.getElementById('pickerModal');
+    const pickerContent = document.getElementById('pickerContent');
+    const pickerOK = document.getElementById('pickerOK');
+    const player = document.getElementById('player');
+    const btnPlay = document.getElementById('btnPlay');
+
+    const searchModal = document.getElementById('searchModal');
+    const searchCloseBtn = document.getElementById('search-close-btn');
+    const searchStatusEl = document.getElementById('search-status');
+    const searchOutputEl = document.getElementById('output');
+    const searchRunBtn = document.getElementById('run');
+    const searchTermEl = document.getElementById('term');
+    const searchPositionEl = document.getElementById('position');
+    const searchIgnoreMarksEl = document.getElementById('ignoreMarks');
+    const searchIgnoreDotsEl = document.getElementById('ignoreDots');
+    const searchIgnoreSmallLettersEl = document.getElementById('ignoreSmallLetters');
+
+    /*
+      ====================
+      3. وظائف الواجهة والتحكم
+      ====================
+    */
+    function isDarkColor(hex) {
+      const c = hex.replace('#', '');
+      const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16);
+      const L = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+      return L < 0.5;
+    }
+    function applyTheme() {
+      document.documentElement.style.setProperty('--paper', state.bg);
+      const dark = isDarkColor(state.bg);
+      document.documentElement.style.setProperty('--ink', dark ? '#f5f7fa' : '#0c1219');
+      document.documentElement.style.setProperty('--card', dark ? '#0d1014' : '#eef2f7');
+      document.documentElement.style.setProperty('--overlay', dark ? 'rgba(0,0,0,.6)' : 'rgba(0,0,0,.35)');
+      document.documentElement.style.setProperty('--quran-font', state.quranFont);
+      document.documentElement.style.setProperty('--quran-size', state.quranSize + 'px');
+    }
+    function openModal(m) { m.classList.add('open'); }
+    function closeModal(m) { m.classList.remove('open'); }
+    function syncTajButtons() {
+      tajOn.classList.toggle('active', state.showTajweed);
+      tajOff.classList.toggle('active', !state.showTajweed);
+    }
+    function updateReadingModeChip() {
+      const rep = state.readingMode === 'repeat' ? `تكرار الوحدة (×${state.repeat})` : 'قراءة مستمرة';
+      readingModeChip.textContent = `وضع: ${rep}`;
+    }
+    function fmtNum(n) { return new Intl.NumberFormat('ar-EG', { useGrouping: false }).format(n); }
+    function sanitizedTaj(html) { return String(html || '').replace(/\s*[\u0660-\u0669]+\s*$/, ''); }
+    function shouldShowBismillah(block) {
+      if (state.mode === 'surah') {
+        return state.pointer.surah !== 1 && state.pointer.surah !== 9;
+      }
+      if (state.mode === 'ayah') {
+        const g = state.indexByGlobal[state.pointer.ayahGlobal - 1];
+        return g && g.numberInSurah === 1 && g.surah !== 1 && g.surah !== 9;
+      }
+      const first = block && block[0];
+      if (first) {
+        return first.numberInSurah === 1 && first.surah !== 1 && first.surah !== 9;
+      }
+      return false;
+    }
+    function unitForHizb() {
+      const q = state.pointer.hizbQuarter;
+      const span = Math.max(1, Math.min(4, state.hizbPart));
+      const end = Math.min(240, q + (span - 1));
+      const acc = [];
+      for (let i = q; i <= end; i++) {
+        const xs = state.indexByHizbQuarter.get(i) || [];
+        acc.push(...xs);
+      }
+      return acc;
+    }
+    function getCurrentUnitAyahs() {
+      if (!state.data) return [];
+      if (state.mode === 'ayah') {
+        const g = state.indexByGlobal[state.pointer.ayahGlobal - 1];
+        return g ? [g] : [];
+      } else if (state.mode === 'surah') {
+        const s = state.data[state.pointer.surah - 1];
+        return s?.ayahs.map(a => ({ ...a, surah: s.number })) || [];
+      } else if (state.mode === 'page') {
+        return state.indexByPage.get(state.pointer.page) || [];
+      } else if (state.mode === 'juz') {
+        return state.indexByJuz.get(state.pointer.juz) || [];
+      } else if (state.mode === 'hizb') {
+        return unitForHizb();
+      }
+      return [];
+    }
+
+    /*
+      ====================
+      4. وظائف جلب البيانات والعرض
+      ====================
+    */
+    async function loadData() {
+      const res = await fetch(DATA_URL);
+      state.data = await res.json();
+      buildIndexes();
+    }
+    function buildIndexes() {
+      state.indexByGlobal = [];
+      state.indexByPage.clear();
+      state.indexByJuz.clear();
+      state.indexByHizbQuarter.clear();
+      for (const s of state.data) {
+        for (const a of s.ayahs) {
+          state.indexByGlobal[a.number - 1] = { surah: s.number, numberInSurah: a.numberInSurah, page: a.page, juz: a.juz, hizbQuarter: a.hizbQuarter, text: a.text, taj: a.qpc_tajweed_text, name: s.name, number: a.number };
+          pushMap(state.indexByPage, a.page, { ...a, surah: s.number, sName: s.name });
+          pushMap(state.indexByJuz, a.juz, { ...a, surah: s.number, sName: s.name });
+          pushMap(state.indexByHizbQuarter, a.hizbQuarter, { ...a, surah: s.number, sName: s.name });
+        }
+      }
+    }
+    function pushMap(map, key, val) {
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(val);
+    }
+    async function updateTafsirFromState() {
+      const currentUnit = getCurrentUnitAyahs();
+      const label = TAFSIR_LABELS[state.tafsir] || state.tafsir;
+      document.getElementById("tafsirContent").innerHTML = `<h3 style="margin:6px 6px 10px">التفسير <span style="color:var(--muted)">(${label})</span></h3><p style="color:var(--muted)">جاري التحميل…</p>`;
+      if (currentUnit.length === 0) {
+        document.getElementById("tafsirContent").innerHTML = `<h3 style="margin:6px 6px 10px">التفسير <span style="color:var(--muted)">(${label})</span></h3><p style="color:var(--muted)">اختر آية لعرض التفسير.</p>`;
+        return;
+      }
+      const allTafsirs = [];
+      try {
+        for (const ayah of currentUnit) {
+          const res = await fetch(`https://api.alquran.cloud/v1/ayah/${ayah.surah}:${ayah.numberInSurah}/${state.tafsir}`);
+          const json = await res.json();
+          if (json && json.data && json.data.text) {
+            allTafsirs.push(`<h4>${ayah.numberInSurah}. ${ayah.text}</h4><p>${json.data.text}</p>`);
+          }
+        }
+        document.getElementById("tafsirContent").innerHTML = `<h3 style="margin:6px 6px 10px">التفسير <span style="color:var(--muted)">(${label})</span></h3>${allTafsirs.join('')}`;
+      } catch (err) {
+        document.getElementById("tafsirContent").innerHTML = `<h3 style="margin:6px 6px 10px">التفسير <span style="color:var(--muted)">(${label})</span></h3><p style="color:var(--muted)">خطأ في الاتصال بالمصدر.</p>`;
+      }
+    }
+    function render() {
+	readerEl.scrollTop = 0;
+      applyTheme();
+      contentEl.innerHTML = '';
+      bismEl.hidden = true;
+      if (state.mode === 'ayah') renderAyah();
+      else if (state.mode === 'surah') renderSurah();
+      else if (state.mode === 'page') renderPage();
+      else if (state.mode === 'juz') renderJuz();
+      else if (state.mode === 'hizb') renderHizb();
+      updateTafsirFromState();
+    }
+    function renderAyah() {
+      const g = state.indexByGlobal[state.pointer.ayahGlobal - 1];
+      if (!g) return;
+      const s = state.data[g.surah - 1];
+      const a = s.ayahs[g.numberInSurah - 1];
+      locator.textContent = `${s.name} • آية ${a.numberInSurah}`;
+      if (shouldShowBismillah([{ ...a, surah: s.number }])) bismEl.hidden = false;
+      const html = state.showTajweed ? sanitizedTaj(a.qpc_tajweed_text) : a.text;
+      contentEl.innerHTML = `<div class="ayah">${html} <span class='ayah-num'> ${fmtNum(a.numberInSurah)}</span></div>`;
+    }
+    function renderSurah() {
+      const s = state.data[state.pointer.surah - 1];
+      if (!s) return;
+      locator.textContent = `${s.name} • سورة كاملة`;
+      if (shouldShowBismillah()) bismEl.hidden = false;
+      const body = s.ayahs.map(a => {
+        const t = state.showTajweed ? sanitizedTaj(a.qpc_tajweed_text) : a.text;
+        return `${t} <span class='ayah-num'> ${fmtNum(a.numberInSurah)}</span>`;
+      }).join(' ');
+      contentEl.innerHTML = `<div class="surah-block">${body}</div>`;
+    }
+    function renderPage() {
+      const arr = state.indexByPage.get(state.pointer.page) || [];
+      locator.textContent = `صفحة ${state.pointer.page}`;
+      if (shouldShowBismillah(arr)) bismEl.hidden = false;
+      const body = arr.map(a => {
+        const t = state.showTajweed ? sanitizedTaj(a.qpc_tajweed_text) : a.text;
+        return `${t} <span class='ayah-num'> ${fmtNum(a.numberInSurah)}</span>`;
+      }).join(' ');
+      contentEl.innerHTML = `<div class="page-block">${body}</div>`;
+    }
+    function renderJuz() {
+      const arr = state.indexByJuz.get(state.pointer.juz) || [];
+      locator.textContent = `جزء ${state.pointer.juz}`;
+      if (shouldShowBismillah(arr)) bismEl.hidden = false;
+      const body = arr.map(a => {
+        const t = state.showTajweed ? sanitizedTaj(a.qpc_tajweed_text) : a.text;
+        return `${t} <span class='ayah-num'> ${fmtNum(a.numberInSurah)}</span>`;
+      }).join(' ');
+      contentEl.innerHTML = `<div class="unit-block">${body}</div>`;
+    }
+    function renderHizb() {
+      const arr = unitForHizb();
+      const hizbNumber = Math.ceil(state.pointer.hizbQuarter / 4);
+      const label = ['ربع', 'نصف', 'ثلاثة أرباع', 'حزب كامل'][state.hizbPart - 1] || 'حزب';
+      locator.textContent = `حزب ${hizbNumber} • ${label}`;
+      if (shouldShowBismillah(arr)) bismEl.hidden = false;
+      const body = arr.map(a => {
+        const t = state.showTajweed ? sanitizedTaj(a.qpc_tajweed_text) : a.text;
+        return `${t} <span class='ayah-num'> ${fmtNum(a.numberInSurah)}</span>`;
+      }).join(' ');
+      contentEl.innerHTML = `<div class="unit-block">${body}</div>`;
+    }
+    
+    /*
+      ====================
+      5. معالجات الأحداث (Event Handlers)
+      ====================
+    */
+    document.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', () => closeModal(el.closest('.modal'))));
+    settingsModal.addEventListener('click', e => { if (e.target.classList.contains('backdrop')) closeModal(settingsModal); });
+    pickerModal.addEventListener('click', e => { if (e.target.classList.contains('backdrop')) closeModal(pickerModal); });
+    btnSettings.addEventListener('click', () => openModal(settingsModal));
+    btnSearch.addEventListener('click', () => { searchModal.style.display = 'block'; });
+    fsDec.addEventListener('click', () => { state.quranSize = Math.max(18, state.quranSize - 1); fsRange.value = state.quranSize; applyTheme(); render(); saveState(); });
+    fsInc.addEventListener('click', () => { state.quranSize = Math.min(44, state.quranSize + 1); fsRange.value = state.quranSize; applyTheme(); render(); saveState(); });
+    fsRange.addEventListener('input', () => { state.quranSize = parseInt(fsRange.value, 10); applyTheme(); render(); saveState(); });
+    fontSelect.addEventListener('change', () => { state.quranFont = fontSelect.value; applyTheme(); render(); saveState(); });
+    bgPicker.addEventListener('input', () => { state.bg = bgPicker.value; applyTheme(); saveState(); });
+    tajOn.addEventListener('click', () => { state.showTajweed = true; syncTajButtons(); render(); saveState(); });
+    tajOff.addEventListener('click', () => { state.showTajweed = false; syncTajButtons(); render(); saveState(); });
+    repeatCount.addEventListener('input', () => {
+      state.repeat = Math.max(1, parseInt(repeatCount.value, 10) || 1);
+      if (state.readingMode === 'repeat') updateReadingModeChip();
+      saveState();
+    });
+    modeSelect.addEventListener('change', () => { state.mode = modeSelect.value; render(); saveState(); });
+    readingModeChip.addEventListener('click', () => {
+      state.readingMode = state.readingMode === 'continuous' ? 'repeat' : 'continuous';
+      updateReadingModeChip();
+      saveState();
+    });
+    tafsirSelect.addEventListener('change', () => { state.tafsir = tafsirSelect.value; updateTafsirFromState(); saveState(); });
+    reciterSelect.addEventListener('change', () => { state.reciter = reciterSelect.value; saveState(); });
+    btnNext.addEventListener('click', () => step(+1));
+    btnPrev.addEventListener('click', () => step(-1));
+    function step(dir) {
+      if (state.mode === 'ayah') {
+        state.pointer.ayahGlobal = clamp(state.pointer.ayahGlobal + dir, 1, state.indexByGlobal.length);
+      } else if (state.mode === 'surah') {
+        state.pointer.surah = clamp(state.pointer.surah + dir, 1, state.data.length);
+      } else if (state.mode === 'page') {
+        const pages = [...state.indexByPage.keys()].sort((a, b) => a - b);
+        const i = pages.indexOf(state.pointer.page);
+        const ni = clamp(i + dir, 0, pages.length - 1);
+        state.pointer.page = pages[ni];
+      } else if (state.mode === 'juz') {
+        const j = [...state.indexByJuz.keys()].sort((a, b) => a - b);
+        const i = j.indexOf(state.pointer.juz);
+        const ni = clamp(i + dir, 0, j.length - 1);
+        state.pointer.juz = j[ni];
+      } else if (state.mode === 'hizb') {
+        state.pointer.hizbQuarter = clamp(state.pointer.hizbQuarter + (dir * state.hizbPart), 1, 240);
+      }
+      render();
+      saveState();
+      autoPlayIfNeeded();
+    }
+    function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+    locator.addEventListener('click', () => { openPicker(); });
+    function openPicker() {
+      buildPicker();
+      openModal(pickerModal);
+    }
+    function makeWheel(items, startIndex, onPick) {
+      const wheel = document.createElement('div');
+      wheel.className = 'wheel';
+      function paint(idx) {
+        wheel.innerHTML = '';
+        items.forEach((label, i) => {
+          const b = document.createElement('button');
+          b.textContent = label;
+          if (i === idx) b.classList.add('selected');
+          if (Math.abs(i - idx) === 1) b.classList.add('near');
+          b.onclick = () => { paint(i); onPick(i); };
+          wheel.appendChild(b);
+        });
+      }
+      paint(startIndex);
+      return wheel;
+    }
+    function buildPicker() {
+      const panel = pickerModal.querySelector('.panel');
+      pickerContent.innerHTML = '';
+      pickerTemp = JSON.parse(JSON.stringify(state.pointer));
+      pickerContent.className = 'grid';
+      panel.classList.remove('single');
+      if (state.mode === 'ayah' || state.mode === 'surah') {
+        const names = state.data.map(s => s.name);
+        let curS = (state.mode === 'ayah' ? state.indexByGlobal[state.pointer.ayahGlobal - 1].surah - 1 : state.pointer.surah - 1);
+        let curA = (state.mode === 'ayah' ? state.indexByGlobal[state.pointer.ayahGlobal - 1].numberInSurah - 1 : 0);
+        const surahWheel = makeWheel(names, curS, (i) => { curS = i; rebuildAyahWheel(); });
+        let ayahWheel = document.createElement('div');
+        function rebuildAyahWheel() {
+          const items = state.data[curS].ayahs.map(a => 'آية ' + a.numberInSurah);
+          const newWheel = makeWheel(items, curA, (i) => { curA = i; });
+          ayahWheel.replaceWith(newWheel);
+          ayahWheel = newWheel;
+        }
+        rebuildAyahWheel();
+        pickerContent.appendChild(surahWheel);
+        pickerContent.appendChild(ayahWheel);
+        pickerOK.onclick = () => {
+          const s = state.data[curS];
+          const a = s.ayahs[curA];
+          state.pointer.surah = s.number;
+          state.pointer.ayahGlobal = a.number;
+          if (state.mode === 'surah' && curA > 0) {
+            state.mode = 'ayah';
+          }
+          closeModal(pickerModal);
+          render();
+          saveState();
+          autoPlayIfNeeded();
+        };
+      } else if (state.mode === 'page') {
+        pickerContent.className = 'grid single';
+        panel.classList.add('single');
+        const pages = [...state.indexByPage.keys()].sort((a, b) => a - b);
+        let cur = Math.max(0, pages.indexOf(state.pointer.page));
+        const w = makeWheel(pages.map(p => 'صفحة ' + p), cur, (i) => { cur = i; pickerTemp.page = pages[i]; });
+        pickerContent.appendChild(w);
+        pickerOK.onclick = () => {
+          state.pointer.page = pickerTemp.page ?? pages[cur];
+          closeModal(pickerModal);
+          render();
+          saveState();
+        };
+      } else if (state.mode === 'juz') {
+        pickerContent.className = 'grid single';
+        panel.classList.add('single');
+        const juz = [...state.indexByJuz.keys()].sort((a, b) => a - b);
+        let cur = Math.max(0, juz.indexOf(state.pointer.juz));
+        const w = makeWheel(juz.map(x => 'جزء ' + x), cur, (i) => { cur = i; pickerTemp.juz = juz[i]; });
+        pickerContent.appendChild(w);
+        pickerOK.onclick = () => {
+          state.pointer.juz = pickerTemp.juz ?? juz[cur];
+          closeModal(pickerModal);
+          render();
+          saveState();
+        };
+      } else if (state.mode === 'hizb') {
+        const hizbs = Array.from({ length: 60 }, (_, i) => i + 1);
+        let curH = Math.ceil(state.pointer.hizbQuarter / 4) - 1;
+        const w1 = makeWheel(hizbs.map(h => 'حزب ' + h), curH, (i) => { curH = i; pickerTemp.hizbQuarter = i * 4 + 1; });
+        const parts = ['ربع', 'نصف', 'ثلاثة أرباع', 'حزب كامل'];
+        let curP = state.hizbPart - 1;
+        const w2 = makeWheel(parts, curP, (i) => { curP = i; state.hizbPart = i + 1; });
+        pickerContent.appendChild(w1);
+        pickerContent.appendChild(w2);
+        pickerOK.onclick = () => {
+          state.pointer.hizbQuarter = pickerTemp.hizbQuarter ?? state.pointer.hizbQuarter;
+          closeModal(pickerModal);
+          render();
+          saveState();
+        };
+      }
+    }
+    function getAudioUrl(surah, ayah) {
+      const s = String(surah).padStart(3, "0");
+      const a = String(ayah).padStart(3, "0");
+      if (state.reciter === "husary_mualim") return `https://everyayah.com/data/Husary_Muallim_128kbps/${s}${a}.mp3`;
+      if (state.reciter === "ghamdi") return `https://everyayah.com/data/Ghamadi_40kbps/${s}${a}.mp3`;
+      if (state.reciter === "alafasy") return `https://everyayah.com/data/Alafasy_64kbps/${s}${a}.mp3`;
+      return null;
+    }
+    function playCurrentAyah() {
+      const ref = state.currentAudioUnit[state.currentAudioIndex];
+      if (!ref || state.reciter === "none") return;
+      const url = getAudioUrl(ref.surah, ref.numberInSurah);
+      if (url) {
+        player.src = url;
+        player.play().then(() => { isPlaying = true; }).catch(() => {});
+      }
+    }
+    function autoPlayIfNeeded() {
+      if (isPlaying) {
+        state.currentAudioUnit = getCurrentUnitAyahs();
+        state.currentAudioIndex = 0;
+        playCurrentAyah();
+      }
+    }
+    btnPlay.addEventListener('click', () => {
+      if (isPlaying) {
+        player.pause();
+        isPlaying = false;
+      } else {
+        state.currentAudioUnit = getCurrentUnitAyahs();
+        state.currentAudioIndex = 0;
+        playCurrentAyah();
+      }
+    });
+    player.onended = () => {
+      if (state.currentAudioIndex < state.currentAudioUnit.length - 1) {
+        state.currentAudioIndex++;
+        playCurrentAyah();
+      } else {
+        if (state.readingMode === 'repeat') {
+          repeatCounter++;
+          if (repeatCounter < state.repeat) {
+            state.currentAudioIndex = 0;
+            playCurrentAyah();
+          } else {
+            repeatCounter = 0;
+            isPlaying = false;
+          }
+        } else {
+          state.currentAudioIndex = 0;
+          step(+1);
+        }
+      }
+      saveState();
+    };
+    
+    /*
+      ====================
+      6. الحفظ والتحميل
+      ====================
+    */
+    function saveState() {
+      try {
+        const settings = {
+          showTajweed: state.showTajweed,
+          repeat: state.repeat,
+          mode: state.mode,
+          hizbPart: state.hizbPart,
+          quranFont: state.quranFont,
+          quranSize: state.quranSize,
+          bg: state.bg,
+          readingMode: state.readingMode,
+          tafsir: state.tafsir,
+          reciter: state.reciter
+        };
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+        localStorage.setItem(STORAGE_KEY_POINTER, JSON.stringify(state.pointer));
+      } catch (e) {}
+    }
+    function loadState() {
+      try {
+        const s = localStorage.getItem(STORAGE_KEY_SETTINGS);
+        const p = localStorage.getItem(STORAGE_KEY_POINTER);
+        if (s) {
+          const parsed = JSON.parse(s);
+          Object.assign(state, parsed);
+        }
+        if (p) {
+          const parsedP = JSON.parse(p);
+          state.pointer = Object.assign({ ayahGlobal: 1, surah: 1, page: 1, juz: 1, hizbQuarter: 1, numberInSurah: 1 }, parsedP);
+        }
+      } catch (e) {}
+    }
+    
+    /*
+      ====================
+      7. تهيئة التطبيق
+      ====================
+    */
+    (async function init() {
+      loadState();
+      applyTheme();
+      updateReadingModeChip();
+      fsRange.value = state.quranSize;
+      fontSelect.value = state.quranFont;
+      bgPicker.value = state.bg;
+      repeatCount.value = state.repeat;
+      modeSelect.value = state.mode;
+      tafsirSelect.value = state.tafsir;
+      reciterSelect.value = state.reciter;
+      syncTajButtons();
+      try {
+        await loadData();
+        const searchDataResponse = await fetch(DATA_URL);
+        const searchData = await searchDataResponse.json();
+        state.searchData = {
+          suraNames: searchData.map(sura => sura.name),
+          suras: searchData.map(sura => sura.ayahs.map(ayah => ayah.imlaei_simple_text).join('\n')),
+          ayahsData: searchData.map(sura => sura.ayahs.map(ayah => ({ number: ayah.number, numberInSurah: ayah.numberInSurah })))
+        };
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+      }
+      state.pointer.ayahGlobal = Math.max(1, Math.min(state.indexByGlobal.length || 1, state.pointer.ayahGlobal || 1));
+      state.pointer.surah = Math.max(1, Math.min(state.data.length || 1, state.pointer.surah || 1));
+      if (state.indexByPage.size) {
+        const pages = [...state.indexByPage.keys()].sort((a, b) => a - b);
+        state.pointer.page = pages.includes(state.pointer.page) ? state.pointer.page : pages[0];
+      }
+      if (state.indexByJuz.size) {
+        const juz = [...state.indexByJuz.keys()].sort((a, b) => a - b);
+        state.pointer.juz = juz.includes(state.pointer.juz) ? state.pointer.juz : juz[0];
+      }
+      state.pointer.hizbQuarter = Math.max(1, Math.min(240, state.pointer.hizbQuarter || 1));
+      render();
+    })();
+
+    /*
+      ====================
+      8. تكبير وتصغير نافذة التفسير
+      ====================
+    */
+    document.addEventListener('DOMContentLoaded', () => {
+      const mainEl = document.querySelector('.main');
+      const tafsirEl = document.getElementById('tafsir');
+      const btn = document.getElementById('expandTafsir');
+      if (!btn) {
+        console.error("زر التكبير expandTafsir غير موجود في الصفحة");
+        return;
+      }
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        mainEl.classList.toggle('tafsir-expanded');
+      });
+      document.addEventListener('click', (e) => {
+        if (mainEl.classList.contains('tafsir-expanded') && !tafsirEl.contains(e.target) && e.target !== btn) {
+          mainEl.classList.remove('tafsir-expanded');
+        }
+      });
+    });
+
+    /*
+      ====================
+      9. وظائف البحث
+      ====================
+    */
+    const CH = {
+      ALEF: "\u0627", ALEF_WITH_HAMZA_ABOVE: "\u0623", ALEF_WITH_HAMZA_BELOW: "\u0625",
+      ALEF_WITH_MADDA_ABOVE: "\u0622", ALEF_WASLA: "\u0671", BEH: "\u0628",
+      DOTLESS_BEH: "\u066E", TEH: "\u062A", THEH: "\u062B", JEEM: "\u062C",
+      HAH: "\u062D", KHAH: "\u062E", DAL: "\u062F", THAL: "\u0630", REH: "\u0631",
+      ZAIN: "\u0632", SEEN: "\u0633", SHEEN: "\u0634", SAD: "\u0635", DAD: "\u0636",
+      TAH: "\u0637", ZAH: "\u0638", AIN: "\u0639", GHAIN: "\u063A", FEH: "\u0641",
+      DOTLESS_FEH: "\u06A1", QAF: "\u0642", DOTLESS_QAF: "\u066F", KAF: "\u0643",
+      LAM: "\u0644", MEEM: "\u0645", NOON: "\u0646", DOTLESS_NOON: "\u06BA",
+      TEH_MARBUTA: "\u0629", HEH: "\u0647", WAW: "\u0648", WAW_WITH_HAMZA_ABOVE: "\u0624",
+      YEH: "\u064A", YEH_WITH_HAMZA_ABOVE: "\u0626", DOTLESS_YEH: "\u0649",
+      FARSI_YEH: "\u06CC", SMALL_ALEF: "\u0670", SMALL_WAW: "\u06E5",
+      SMALL_YEH: "\u06E6", HAMZA_BELOW: "\u0655", NARROW_NBSP: "\u202F",
+      SUPERSCRIPT_ALEF: "\u0670", HAMZA: "\u0621", KASHIDA: "\u0640",
+    };
+    const DUAL_JOINING = new Set([
+      CH.DOTLESS_BEH, CH.HAH, CH.SEEN, CH.SAD, CH.TAH, CH.AIN, CH.DOTLESS_FEH,
+      CH.DOTLESS_QAF, CH.KAF, CH.LAM, CH.MEEM, CH.DOTLESS_NOON, CH.HEH,
+      CH.DOTLESS_YEH, CH.KASHIDA,
+    ]);
+    const RIGHT_JOINING_ONLY = new Set([CH.ALEF, CH.DAL, CH.REH, CH.WAW]);
+    const LEFT_JOINING = DUAL_JOINING;
+    const RIGHT_JOINING = new Set([...DUAL_JOINING, ...RIGHT_JOINING_ONLY]);
+    const DOTLESS_MAP = new Map([
+      [CH.ALEF_WITH_HAMZA_ABOVE, CH.ALEF], [CH.ALEF_WITH_HAMZA_BELOW, CH.ALEF],
+      [CH.ALEF_WITH_MADDA_ABOVE, CH.ALEF], [CH.ALEF_WASLA, CH.ALEF],
+      [CH.BEH, CH.DOTLESS_BEH], [CH.TEH, CH.DOTLESS_BEH],
+      [CH.THEH, CH.DOTLESS_BEH], [CH.JEEM, CH.HAH], [CH.KHAH, CH.HAH],
+      [CH.THAL, CH.DAL], [CH.ZAIN, CH.REH], [CH.SHEEN, CH.SEEN],
+      [CH.DAD, CH.SAD], [CH.ZAH, CH.TAH], [CH.GHAIN, CH.AIN],
+      [CH.FEH, CH.DOTLESS_FEH], [CH.QAF, CH.DOTLESS_QAF],
+      [CH.NOON, CH.DOTLESS_NOON], [CH.TEH_MARBUTA, CH.HEH],
+      [CH.WAW_WITH_HAMZA_ABOVE, CH.WAW], [CH.YEH_WITH_HAMZA_ABOVE, CH.DOTLESS_YEH],
+      [CH.YEH, CH.DOTLESS_YEH], [CH.FARSI_YEH, CH.DOTLESS_YEH],
+      [CH.HAMZA_BELOW, ""],
+    ]);
+    const POSITIONAL_DOTLESS_FORM = new Set([CH.DOTLESS_NOON, CH.DOTLESS_YEH, CH.DOTLESS_QAF]);
+    const SMALL_LETTERS_MAP = new Map([[CH.SMALL_ALEF, CH.ALEF], [CH.SMALL_WAW, CH.WAW], [CH.SMALL_YEH, CH.YEH]]);
+    function normalizeDots(text) { return normalize(text, false, true, false).text; }
+    function canJoin(prev, next) { return LEFT_JOINING.has(prev) && RIGHT_JOINING.has(next) && !RIGHT_JOINING_ONLY.has(prev); }
+    function isInitial(first, prev, last, next) { return !canJoin(prev, first) && canJoin(last, next); }
+    function isMedial(first, prev, last, next) { return canJoin(prev, first) && canJoin(last, next); }
+    function isFinal(first, prev, last, next) { return canJoin(prev, first) && !canJoin(last, next); }
+    function isIsolated(first, prev, last, next) { return !canJoin(prev, first) && !canJoin(last, next); }
+    function previousNonMark(text, index) {
+      if (index <= 0) return "";
+      for (let i = index - 1; i >= 0; i--) {
+        const char = text[i];
+        if (!char.match(/\p{M}/u)) return char;
+      }
+      return "";
+    }
+    function nextNonMark(text, index) {
+      if (index >= text.length - 1) return "";
+      for (let i = index + 1; i < text.length; i++) {
+        const char = text[i];
+        if (!char.match(/\p{M}/u)) return char;
+      }
+      return "";
+    }
+    function normalize(text, marks, dots, smallLetters) {
+      if (!text) return { text: "", indexMap: [] };
+      if (!marks && !dots && !smallLetters) {
+        return { text, indexMap: Array.from({ length: text.length }, (_, i) => i) };
+      }
+      const chars = [...text];
+      const processed = [];
+      const indexMap = [];
+      const markRe = /[\p{M}\u0640\u202F]/u;
+      chars.forEach((char, i) => {
+        let keep = true;
+        if (!smallLetters) {
+          const replacement = SMALL_LETTERS_MAP.get(char);
+          if (replacement !== undefined && chars[i - 1] === CH.KASHIDA) {
+            char = replacement;
+          }
+        }
+        if (marks && markRe.test(char) && char !== CH.HAMZA_BELOW) {
+          keep = false;
+        }
+        if (keep && dots) {
+          const replacement = DOTLESS_MAP.get(char);
+          if (replacement !== undefined) {
+            char = replacement;
+            if (char === "") keep = false;
+          }
+        }
+        if (keep) {
+          processed.push(char);
+          indexMap.push(i);
+        }
+      });
+      chars.forEach((char, i) => {
+        if (POSITIONAL_DOTLESS_FORM.has(char)) {
+          let prev = normalizeDots(previousNonMark(text, i));
+          let next = normalizeDots(nextNonMark(text, i));
+          if (isInitial(char, prev, char, next) || isMedial(char, prev, char, next)) {
+            switch (char) {
+              case CH.DOTLESS_NOON: case CH.DOTLESS_YEH: char = CH.DOTLESS_BEH; break;
+              case CH.DOTLESS_QAF: char = CH.DOTLESS_FEH; break;
+            }
+          }
+        }
+      });
+      return { text: processed.join(""), indexMap };
+    }
+    function searchAyah(ayah, term, ignoreMarks, ignoreDots, ignoreSmallLetters, position) {
+      const { text: normalizedAyah, indexMap } = normalize(ayah, ignoreMarks, ignoreDots, ignoreSmallLetters);
+      const normalizedTerm = normalize(term, ignoreMarks, ignoreDots, ignoreSmallLetters).text;
+      const matches = [];
+      let index = 0;
+      while (index < normalizedAyah.length) {
+        const pos = normalizedAyah.indexOf(normalizedTerm, index);
+        if (pos === -1) break;
+        let start = pos;
+        let end = pos + normalizedTerm.length;
+        const processedTerm = normalize(normalizedTerm, true, true, false).text;
+        const first = processedTerm[0];
+        const last = processedTerm[processedTerm.length - 1];
+        const prev = normalizeDots(previousNonMark(normalizedAyah, start));
+        const next = normalizeDots(nextNonMark(normalizedAyah, end - 1));
+        let found = false;
+        switch (position) {
+          case "initial": found = isInitial(first, prev, last, next); break;
+          case "final": found = isFinal(first, prev, last, next); break;
+          case "medial": found = isMedial(first, prev, last, next); break;
+          case "isolated": found = isIsolated(first, prev, last, next); break;
+          case "any": found = true; break;
+        }
+        if (found) {
+          const originalStart = indexMap[start] || 0;
+          const originalEnd = end < indexMap.length ? indexMap[end] : ayah.length;
+          matches.push({ start: originalStart, end: originalEnd });
+        }
+        index = pos + 1;
+      }
+      return matches.length > 0 ? matches : null;
+    }
+    function highlight(text, positions) {
+      if (!positions || positions.length === 0) return text;
+      const sortedPositions = [...positions].sort((a, b) => b.start - a.start);
+      let result = text;
+      for (const pos of sortedPositions) {
+        if (pos.start >= 0 && pos.end <= result.length && pos.start < pos.end) {
+          result =
+            result.slice(0, pos.start) +
+            "<mark>" +
+            result.slice(pos.start, pos.end) +
+            "</mark>" +
+            result.slice(pos.end);
+        }
+      }
+      return result;
+    }
+    function formatResults(results) {
+      let out = "<tbody>";
+      if (!results.length) {
+        out += `
+          <tr>
+            <td colspan="2" class="search-count">
+              لا نتائج
+            </td>
+          </tr>`;
+      } else {
+        const arabicDigits = new Intl.NumberFormat("ar-EG", { useGrouping: false });
+        const pluralRules = new Intl.PluralRules("ar-EG");
+        const totalCount = results.reduce(
+          (sum, sura) => sum + sura.ayat.reduce((s, a) => s + a.matches.length, 0),
+          0
+        );
+        const totalCountAr = arabicDigits.format(totalCount);
+        const ayatCount = results.reduce((sum, sura) => sum + sura.ayat.length, 0);
+        const ayatCountAr = arabicDigits.format(ayatCount);
+        const surasCount = results.length;
+        const surasCountAr = arabicDigits.format(surasCount);
+        const ayatCountStr = { zero: "آية", one: "آية واحدة", two: "آيتين", few: `${ayatCountAr} آيات`, many: `${ayatCountAr} آية`, other: `${ayatCountAr} آية`, }[pluralRules.select(ayatCount)];
+        const surasCountStr = { zero: "سورة", one: "سورة واحدة", two: "سورتين", few: `${surasCountAr} سور`, many: `${surasCountAr} سورة`, other: `${surasCountAr} سورة`, }[pluralRules.select(surasCount)];
+        const totalCountStr = { zero: "لا نتائج", one: "مرة واحدة", two: "مرتين", few: `${totalCountAr} مرات`, many: `${totalCountAr} مرة`, other: `${totalCountAr} مرة`, }[pluralRules.select(totalCount)];
+        out += `
+          <tr>
+            <td colspan="2" class="search-count">
+              عبارة البحث موجودة ${totalCountStr} في ${ayatCountStr} في ${surasCountStr}
+            </td>
+          </tr>`;
+        for (const group of results) {
+          const suraNumber = arabicDigits.format(group.sura);
+          out += `
+          <tr>
+            <td colspan="2" class="sura-header">سورة ${group.name} (${suraNumber})</td>
+          </tr>`;
+          for (const ayah of group.ayat) {
+            let displayText = ayah.text;
+            if (ayah.matches.length > 0) {
+              displayText = highlight(ayah.text, ayah.matches);
+            }
+            out += `
+            <tr data-sura-number="${group.sura}" data-ayah-number-in-sura="${ayah.ayah}" class="ayah-text">
+              <td class="ayah-number">${arabicDigits.format(ayah.ayah)}</td>
+              <td>${displayText}</td>
+            </tr>`;
+          }
+        }
+      }
+      out += "</tbody>";
+      return out;
+    }
+    
+    // Search Integration Logic
+    searchCloseBtn.addEventListener('click', () => {
+      searchModal.style.display = 'none';
+    });
+    window.addEventListener('click', (event) => {
+      if (event.target === searchModal) {
+        searchModal.style.display = 'none';
+      }
+    });
+    searchRunBtn.addEventListener('click', runSearch);
+    searchTermEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runSearch();
+    });
+    
+    function runSearch() {
+      searchOutputEl.innerHTML = '';
+      if (!state.searchData) {
+        searchStatusEl.style.display = 'initial';
+        searchStatusEl.textContent = 'لم يتم تحميل بيانات القرآن بعد.';
+        return;
+      }
+      const term = searchTermEl.value.trim();
+      if (!term) {
+        searchOutputEl.innerHTML = 'أدخل عبارة للبحث عنها.';
+        return;
+      }
+      searchStatusEl.style.display = 'none';
+      
+      let results = [];
+      state.searchData.suras.forEach((suraText, i) => {
+        const ayat = [];
+        const suraAyahsData = state.searchData.ayahsData[i];
+        suraText.split('\n').forEach((ayah, j) => {
+          const matches = searchAyah(
+            ayah,
+            term,
+            searchIgnoreMarksEl.checked,
+            searchIgnoreDotsEl.checked,
+            searchIgnoreSmallLettersEl.checked,
+            searchPositionEl.value
+          );
+          if (matches) {
+            ayat.push({
+              ayah: suraAyahsData[j].numberInSurah,
+              text: ayah,
+              matches: matches,
+              ayahNumberInQuran: suraAyahsData[j].number,
+            });
+          }
+        });
+        if (ayat.length) {
+          results.push({
+            sura: i + 1,
+            name: state.searchData.suraNames[i],
+            ayat: ayat,
+          });
+        }
+      });
+      searchOutputEl.innerHTML = formatResults(results);
+
+      searchOutputEl.querySelectorAll('tr.ayah-text').forEach(row => {
+        row.addEventListener('click', (e) => {
+          const suraNumber = parseInt(row.dataset.suraNumber, 10);
+          const ayahNumberInSura = parseInt(row.dataset.ayahNumberInSura, 10);
+          navigateToAyah(suraNumber, ayahNumberInSura);
+        });
+      });
+    }
+
+    function navigateToAyah(suraNumber, ayahNumberInSura) {
+      const selectedSura = state.data.find(s => s.number === suraNumber);
+      const selectedAyah = selectedSura.ayahs.find(a => a.numberInSurah === ayahNumberInSura);
+      if (selectedAyah) {
+        state.pointer.surah = selectedSura.number;
+        state.pointer.ayahGlobal = selectedAyah.number;
+        state.pointer.page = selectedAyah.page;
+        state.pointer.juz = selectedAyah.juz;
+        state.pointer.hizbQuarter = selectedAyah.hizbQuarter;
+        state.mode = 'ayah'; // Switch to ayah mode to display a single ayah
+        saveState();
+        render();
+        searchModal.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
