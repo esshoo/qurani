@@ -10,7 +10,7 @@ export function initAyahActions({ state, onTafsir, onPlay, onNote, onDrawing, on
     const ayah = state.indexByGlobal[Number(target.dataset.global) - 1];
     if (!ayah) return;
     state.selectedAyah = ayah;
-    openAyahActions({ ayah, onTafsir, onPlay, onNote, onDrawing, onShare });
+    openAyahActions({ ayah, onTafsir, onPlay, onNote, onDrawing, onShare, onTest });
   });
 }
 

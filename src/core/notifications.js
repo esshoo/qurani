@@ -76,13 +76,21 @@ export async function showTestNotification(notificationSettings) {
   const settings = normalizeNotificationSettings(notificationSettings || currentState?.settings?.notifications);
   const permission = await ensurePermissionForUserAction();
   if (permission !== "granted") return false;
-  await showSystemNotification({
-    title: "اختبار الإشعارات",
-    body: settings.body || DEFAULT_NOTIFICATION_SETTINGS.body,
-    tag: "quran-test-notification"
-  });
-  toast("تم إرسال إشعار تجريبي.");
-  return true;
+
+  try {
+    const body = await buildNotificationBody(settings.body || DEFAULT_NOTIFICATION_SETTINGS.body);
+    await showSystemNotification({
+      title: settings.title || "اختبار الإشعارات",
+      body,
+      tag: "quran-test-notification"
+    });
+    toast("تم إرسال إشعار تجريبي.");
+    return true;
+  } catch (error) {
+    console.error("Unable to show test notification", error);
+    toast("تعذر إرسال إشعار الاختبار. تأكد من صلاحية الإشعارات ومن عمل Service Worker.");
+    return false;
+  }
 }
 
 export function refreshNotificationSchedule() {
@@ -129,12 +137,7 @@ async function maybeShowDailyReminder() {
       return false;
     }
 
-    const remaining = Math.max(0, Number(wird.goalValue || 0) - Number(wird.done || 0));
-    body = body
-      .replaceAll("{done}", String(wird.done))
-      .replaceAll("{goal}", String(wird.goalValue))
-      .replaceAll("{remaining}", String(remaining))
-      .replaceAll("{type}", goalTypeLabel(wird.goalType));
+    body = await buildNotificationBody(body, wird);
   } catch (error) {
     console.warn("Unable to read wird progress for notification", error);
   }
@@ -150,6 +153,27 @@ async function maybeShowDailyReminder() {
     onSaveSettings?.();
   }
   return true;
+}
+
+async function buildNotificationBody(template, precomputedWird = null) {
+  let wird = precomputedWird;
+  if (!wird) {
+    try {
+      const daily = await getTodayProgress();
+      wird = calculateWirdStats(daily, currentState?.settings || {});
+    } catch {
+      wird = { done: 0, goalValue: 0, goalType: "ayahs" };
+    }
+  }
+
+  const done = Number(wird.done || 0);
+  const goal = Number(wird.goalValue || 0);
+  const remaining = Math.max(0, goal - done);
+  return String(template || DEFAULT_NOTIFICATION_SETTINGS.body)
+    .replaceAll("{done}", String(done))
+    .replaceAll("{goal}", String(goal))
+    .replaceAll("{remaining}", String(remaining))
+    .replaceAll("{type}", goalTypeLabel(wird.goalType));
 }
 
 function goalTypeLabel(type) {
@@ -189,9 +213,15 @@ async function showSystemNotification({ title, body, tag }) {
   try {
     const registration = await navigator.serviceWorker.ready;
     await registration.showNotification(title, options);
-  } catch {
+  } catch (error) {
     // Fallback for browsers that support Notification but fail service worker display.
-    new Notification(title, options);
+    const { actions, badge, ...fallbackOptions } = options;
+    try {
+      new Notification(title, fallbackOptions);
+    } catch (fallbackError) {
+      console.error("Notification display failed", error, fallbackError);
+      throw fallbackError;
+    }
   }
 }
 

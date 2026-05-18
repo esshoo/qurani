@@ -1,9 +1,9 @@
 export const APP_CONFIG = {
-  version: "0.4.0",
+  version: "0.8.3",
   dataMode: "single",
   paths: {
     // انسخ ملف quran.json بجوار index.html أو داخل data/quran.json
-    quranSingleCandidates: ["./data/quran.json", "./quran.json"],
+    quranSingleCandidates: ["./quran.json", "./data/quran.json"],
     surahDir: "./data/quran/surah/",
     tafsirDir: "./data/tafsir/",
     tafsirLocalPattern: "./data/tafsir/{tafsir}/surah_{surah}.json",
@@ -13,7 +13,8 @@ export const APP_CONFIG = {
   offline: {
     cacheAudio: false,
     cacheTafsir: true,
-    cacheTranslations: true
+    cacheTranslations: true,
+    tryLocalTafsir: false
   },
   tafsirOnline: "https://api.alquran.cloud/v1/ayah/"
 };

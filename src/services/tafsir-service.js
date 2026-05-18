@@ -7,10 +7,12 @@ export async function getTafsir(ayah, tafsirKey) {
   const key = `${tafsirKey}:${ayah.surah}:${ayah.numberInSurah}`;
   if (memoryCache.has(key)) return memoryCache.get(key);
 
-  const localText = await tryLocalTafsir(ayah, tafsirKey);
-  if (localText) {
-    memoryCache.set(key, localText);
-    return localText;
+  if (APP_CONFIG.offline?.tryLocalTafsir) {
+    const localText = await tryLocalTafsir(ayah, tafsirKey);
+    if (localText) {
+      memoryCache.set(key, localText);
+      return localText;
+    }
   }
 
   if (!navigator.onLine) {
