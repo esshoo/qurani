@@ -365,3 +365,52 @@ input[type="range"] { inline-size: 100%; }
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Update modal */
+.update-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  margin-bottom: 14px;
+}
+.update-version-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--soft);
+}
+.update-version-row.highlight {
+  background: color-mix(in srgb, var(--brand) 22%, var(--surface));
+  color: var(--ink);
+}
+.update-change-list {
+  display: grid;
+  gap: 8px;
+  padding-inline-start: 22px;
+  line-height: 1.9;
+}
+.update-actions {
+  margin-top: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--card);
+}
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+.navbtn.primary {
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 800;
+}
+#updateModal .modal-panel {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}

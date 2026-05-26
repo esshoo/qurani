@@ -97,7 +97,7 @@ export function renderReader(state) {
   content.innerHTML = `<div class="${wrapperClass}">${unit.map(a => renderAyahSpan(a, state.settings.showTajweed)).join(" ")}</div>`;
 }
 
-function renderAyahSpan(ayah, showTajweed) {
+export function renderAyahSpan(ayah, showTajweed) {
   const raw = showTajweed ? sanitizedTaj(ayah.qpc_tajweed_text || ayah.text) : escapeHTML(ayah.text || "");
   return `<span class="ayah-item" data-surah="${ayah.surah}" data-ayah="${ayah.numberInSurah}" data-global="${ayah.number}">${raw}<span class="ayah-num">${fmtNum(ayah.numberInSurah)}</span></span>`;
 }
@@ -121,6 +121,74 @@ function shouldShowBismillah(state, unit) {
   if (!first) return false;
   if (state.settings.mode === "surah") return state.pointer.surah !== 1 && state.pointer.surah !== 9;
   return first.numberInSurah === 1 && first.surah !== 1 && first.surah !== 9;
+}
+
+
+export function renderFocusUnitHTML(state, unit) {
+  if (!unit?.length) return "";
+  const first = unit[0];
+  const mode = state.settings.mode;
+  const label = getFocusUnitLabel(state, unit);
+  const bismillah = shouldShowBismillahForUnit(unit) ? `<div class="bismillah focus-bismillah">﷽</div>` : "";
+  const wrapperClass = mode === "ayah" ? "ayah" : "unit-block";
+  return `
+    <article class="focus-unit" data-mode="${mode}" data-start="${first.number}" data-end="${unit[unit.length - 1]?.number || first.number}">
+      <div class="focus-unit-label">${escapeHTML(label)}</div>
+      ${bismillah}
+      <div class="${wrapperClass}">${unit.map(a => renderAyahSpan(a, state.settings.showTajweed)).join(" ")}</div>
+    </article>
+  `;
+}
+
+export function renderFocusReader(state, unit) {
+  applyTheme(state.settings);
+  const content = document.getElementById("content");
+  const bismillah = document.getElementById("bismillah");
+  const surahTitle = document.getElementById("surahTitle");
+  const locator = document.getElementById("locator");
+  const reader = document.getElementById("reader");
+  bismillah.hidden = true;
+  surahTitle.hidden = true;
+  if (!unit?.length) {
+    content.innerHTML = `<p class="muted-text">لم يتم العثور على بيانات للعرض.</p>`;
+    return;
+  }
+  updateLocator(state, unit, locator);
+  content.innerHTML = renderFocusUnitHTML(state, unit);
+  reader.scrollTop = 0;
+}
+
+export function appendFocusUnit(state, unit, position = "end") {
+  const content = document.getElementById("content");
+  const html = renderFocusUnitHTML(state, unit);
+  if (!html) return;
+  if (position === "start") content.insertAdjacentHTML("afterbegin", html);
+  else content.insertAdjacentHTML("beforeend", html);
+}
+
+function getFocusUnitLabel(state, unit) {
+  const first = unit[0];
+  const last = unit[unit.length - 1] || first;
+  const mode = state.settings.mode;
+  const surahName = first.sName || state.data?.[first.surah - 1]?.name || "سورة";
+  if (mode === "ayah") return `${surahName} • آية ${fmtNum(first.numberInSurah)}`;
+  if (mode === "surah") return `${surahName} • سورة كاملة`;
+  if (mode === "page") return `صفحة ${fmtNum(first.page || state.pointer.page)}`;
+  if (mode === "juz") return `جزء ${fmtNum(first.juz || state.pointer.juz)}`;
+  if (mode === "hizb") {
+    const labels = ["ربع", "نصف", "ثلاثة أرباع", "حزب كامل"];
+    const label = labels[(state.settings.hizbPart || 1) - 1] || "حزب";
+    return `حزب ${fmtNum(Math.ceil((first.hizbQuarter || state.pointer.hizbQuarter) / 4))} • ${label}`;
+  }
+  if (first.surah === last.surah && first.numberInSurah !== last.numberInSurah) {
+    return `${surahName} • من آية ${fmtNum(first.numberInSurah)} إلى ${fmtNum(last.numberInSurah)}`;
+  }
+  return `${surahName} • آية ${fmtNum(first.numberInSurah)}`;
+}
+
+function shouldShowBismillahForUnit(unit) {
+  const first = unit?.[0];
+  return !!first && first.numberInSurah === 1 && first.surah !== 1 && first.surah !== 9;
 }
 
 export function markSelectedAyah(ayah) {

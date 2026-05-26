@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b0c0e" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon-192.png" type="image/png" />
-  <title>منصة قراءة القرآن - نسخة تجريبية v0.8.3</title>
+  <title>منصة قراءة القرآن - نسخة تجريبية v0.8.8</title>
 
   <link rel="stylesheet" href="./styles/base.css" />
   <link rel="stylesheet" href="./styles/layout.css" />
@@ -61,10 +61,8 @@
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <div id="focusControls" class="focus-controls" hidden aria-label="تنقل وضع التركيز">
-    <button id="btnFocusPrev" class="focus-navbtn" title="السابق" type="button">السابق ➡️</button>
-    <button id="btnExitFocus" class="focus-exit" type="button">↩️ خروج</button>
-    <button id="btnFocusNext" class="focus-navbtn" title="التالي" type="button">⬅️ التالي</button>
+  <div id="focusControls" class="focus-controls" hidden aria-label="الخروج من وضع التركيز">
+    <button id="btnExitFocus" class="focus-exit" type="button">↩️ خروج من التركيز</button>
   </div>
 
   <div class="modal" id="settingsModal" aria-hidden="true">
@@ -174,6 +172,21 @@
         <button class="iconbtn" data-modal-close type="button">✖️</button>
       </div>
       <div id="testContent" class="modal-scroll"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="updateModal" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+      <div class="modal-head">
+        <h3 id="updateTitle">تحديث جديد متاح</h3>
+      </div>
+      <div id="updateContent" class="modal-scroll"></div>
+      <div class="modal-actions sticky-actions update-actions">
+        <button id="btnKeepCurrentVersion" class="navbtn" type="button">البقاء على النسخة الحالية</button>
+        <button id="btnRemindUpdateLater" class="navbtn" type="button">ذكرني لاحقًا</button>
+        <button id="btnApplyUpdate" class="navbtn primary" type="button">تحديث الآن</button>
+      </div>
     </section>
   </div>
 

@@ -1,5 +1,5 @@
-const CACHE_NAME = "quran-app-v0.8.3";
-const RUNTIME_CACHE = "quran-app-runtime-v0.8.3";
+const CACHE_NAME = "quran-app-v0.8.8";
+const RUNTIME_CACHE = "quran-app-runtime-v0.8.8";
 
 const CORE_ASSETS = [
   "./",
@@ -7,6 +7,7 @@ const CORE_ASSETS = [
   "./manifest.webmanifest",
   "./NOTIFICATIONS.md",
   "./WIRD.md",
+  "./version.json",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
   "./styles/base.css",
@@ -27,6 +28,7 @@ const CORE_ASSETS = [
   "./src/core/modal-manager.js",
   "./src/core/pwa.js",
   "./src/core/notifications.js",
+  "./src/core/update-manager.js",
   "./src/storage/db.js",
   "./src/storage/user-data-store.js",
   "./src/storage/progress-store.js",
@@ -62,7 +64,6 @@ self.addEventListener("install", event => {
     const cache = await caches.open(CACHE_NAME);
     await Promise.allSettled(CORE_ASSETS.map(url => cache.add(url)));
     await Promise.allSettled(OPTIONAL_ASSETS.map(url => cache.add(url)));
-    self.skipWaiting();
   })());
 });
 
@@ -132,6 +133,13 @@ async function putRuntime(request, response) {
   await cache.put(request, response);
 }
 
+
+
+self.addEventListener("message", event => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();

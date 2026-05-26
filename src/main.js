@@ -4,9 +4,10 @@ import { ModalManager } from "./core/modal-manager.js";
 import { toast } from "./core/dom.js";
 import { initPWA } from "./core/pwa.js";
 import { initNotifications, refreshNotificationSchedule } from "./core/notifications.js";
+import { initUpdateManager } from "./core/update-manager.js";
 import { loadQuranData, buildIndexes, getCurrentUnitAyahs, stepPointer, syncPointerFromAyah } from "./services/quran-service.js";
 import { AudioService } from "./services/audio-service.js";
-import { renderReader, markSelectedAyah, markPlayingAyah } from "./features/reader/reader-renderer.js";
+import { renderReader, renderFocusReader, appendFocusUnit, markSelectedAyah, markPlayingAyah } from "./features/reader/reader-renderer.js";
 import { initAyahActions } from "./features/reader/ayah-actions.js";
 import { showTafsir, resetTafsirPanel } from "./features/tafsir/tafsir-panel.js";
 import { initSettings } from "./features/settings/settings-modal.js";
@@ -19,6 +20,8 @@ import { initTestMode, openTestMode } from "./features/test/test-mode.js";
 
 let audioService = null;
 let lastReadingSecondsFlush = Date.now();
+let focusScrollState = null;
+let focusScrollHandler = null;
 
 async function init() {
   ModalManager.init();
@@ -35,6 +38,7 @@ async function init() {
   updateReadingModeChip();
   attachGlobalEvents();
   initPWA();
+  initUpdateManager();
   initNotifications({ state, onSave: () => saveSettings(state.settings) });
 
   try {
@@ -97,8 +101,6 @@ function attachGlobalEvents() {
   document.getElementById("btnPlay").addEventListener("click", () => audioService?.toggle(getCurrentUnitAyahs(state)));
   document.getElementById("btnFocus").addEventListener("click", () => setFocusMode(true));
   document.getElementById("btnExitFocus").addEventListener("click", () => setFocusMode(false));
-  document.getElementById("btnFocusNext").addEventListener("click", () => step(+1));
-  document.getElementById("btnFocusPrev").addEventListener("click", () => step(-1));
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && document.body.classList.contains("focus-mode")) setFocusMode(false);
   });
@@ -116,13 +118,161 @@ function attachGlobalEvents() {
 
 function setFocusMode(enabled) {
   document.body.classList.toggle("focus-mode", enabled);
+  document.documentElement.classList.toggle("focus-mode", enabled);
   const controls = document.getElementById("focusControls");
   if (controls) controls.hidden = !enabled;
   refreshWirdWidget().catch?.(console.warn);
   if (enabled) {
     document.getElementById("mainArea")?.classList.remove("tafsir-expanded");
-    toast("تم تفعيل وضع التركيز. استخدم السابق/التالي أو زر الخروج.");
+    resetTafsirPanel();
+    initFocusInfiniteScroll();
+    toast("تم تفعيل وضع التركيز. القراءة الآن بالتمرير المستمر.");
+  } else {
+    destroyFocusInfiniteScroll();
+    renderAndSave();
   }
+}
+
+function initFocusInfiniteScroll() {
+  if (!state.data) return;
+  destroyFocusInfiniteScroll(false);
+  const reader = document.getElementById("reader");
+  const currentUnit = getCurrentUnitAyahs(state);
+  renderFocusReader(state, currentUnit);
+
+  focusScrollState = {
+    startPointer: clonePointer(state.pointer),
+    endPointer: clonePointer(state.pointer),
+    loadingNext: false,
+    loadingPrev: false,
+    reachedEnd: false,
+    reachedStart: false,
+    loadedKeys: new Set([unitKey(currentUnit)])
+  };
+
+  focusScrollHandler = () => {
+    if (!document.body.classList.contains("focus-mode")) return;
+    const nearBottom = reader.scrollTop + reader.clientHeight >= reader.scrollHeight - Math.max(420, reader.clientHeight * 0.45);
+    const nearTop = reader.scrollTop <= 80;
+    if (nearBottom) loadNextFocusUnit();
+    if (nearTop) loadPreviousFocusUnit();
+  };
+
+  reader.addEventListener("scroll", focusScrollHandler, { passive: true });
+  reader.addEventListener("wheel", focusScrollHandler, { passive: true });
+  reader.addEventListener("touchmove", focusScrollHandler, { passive: true });
+
+  requestAnimationFrame(() => {
+    reader.scrollTop = 0;
+    fillFocusViewport();
+  });
+}
+
+function destroyFocusInfiniteScroll(shouldNull = true) {
+  const reader = document.getElementById("reader");
+  if (focusScrollHandler) {
+    reader.removeEventListener("scroll", focusScrollHandler);
+    reader.removeEventListener("wheel", focusScrollHandler);
+    reader.removeEventListener("touchmove", focusScrollHandler);
+  }
+  focusScrollHandler = null;
+  if (shouldNull) focusScrollState = null;
+}
+
+async function fillFocusViewport() {
+  const reader = document.getElementById("reader");
+  let guard = 0;
+  while (document.body.classList.contains("focus-mode") && reader.scrollHeight <= reader.clientHeight + 160 && guard < 8) {
+    const loaded = await loadNextFocusUnit();
+    if (!loaded) break;
+    guard++;
+  }
+}
+
+async function loadNextFocusUnit() {
+  if (!focusScrollState || focusScrollState.loadingNext || focusScrollState.reachedEnd) return false;
+  focusScrollState.loadingNext = true;
+  try {
+    const tempState = cloneStateForPointer(focusScrollState.endPointer);
+    const before = JSON.stringify(tempState.pointer);
+    stepPointer(tempState, +1);
+    if (before === JSON.stringify(tempState.pointer)) {
+      focusScrollState.reachedEnd = true;
+      return false;
+    }
+    const unit = getCurrentUnitAyahs(tempState);
+    const key = unitKey(unit);
+    if (!unit.length || focusScrollState.loadedKeys.has(key)) {
+      focusScrollState.reachedEnd = true;
+      return false;
+    }
+    appendFocusUnit(state, unit, "end");
+    focusScrollState.loadedKeys.add(key);
+    focusScrollState.endPointer = clonePointer(tempState.pointer);
+    state.pointer = clonePointer(tempState.pointer);
+    savePointer(state.pointer);
+    resetTafsirPanel();
+    recordCurrentReadingProgress().catch(console.warn);
+    requestAnimationFrame(() => fillFocusViewport());
+    return true;
+  } finally {
+    focusScrollState.loadingNext = false;
+  }
+}
+
+async function loadPreviousFocusUnit() {
+  if (!focusScrollState || focusScrollState.loadingPrev || focusScrollState.reachedStart) return false;
+  const reader = document.getElementById("reader");
+  if (reader.scrollTop > 80) return false;
+  focusScrollState.loadingPrev = true;
+  try {
+    const tempState = cloneStateForPointer(focusScrollState.startPointer);
+    const before = JSON.stringify(tempState.pointer);
+    stepPointer(tempState, -1);
+    if (before === JSON.stringify(tempState.pointer)) {
+      focusScrollState.reachedStart = true;
+      return false;
+    }
+    const unit = getCurrentUnitAyahs(tempState);
+    const key = unitKey(unit);
+    if (!unit.length || focusScrollState.loadedKeys.has(key)) {
+      focusScrollState.reachedStart = true;
+      return false;
+    }
+    const oldHeight = reader.scrollHeight;
+    appendFocusUnit(state, unit, "start");
+    focusScrollState.loadedKeys.add(key);
+    focusScrollState.startPointer = clonePointer(tempState.pointer);
+    requestAnimationFrame(() => {
+      const delta = reader.scrollHeight - oldHeight;
+      reader.scrollTop = delta + 4;
+    });
+    return true;
+  } finally {
+    focusScrollState.loadingPrev = false;
+  }
+}
+
+function cloneStateForPointer(pointer) {
+  return {
+    ...state,
+    pointer: clonePointer(pointer),
+    settings: state.settings,
+    data: state.data,
+    indexByGlobal: state.indexByGlobal,
+    indexByPage: state.indexByPage,
+    indexByJuz: state.indexByJuz,
+    indexByHizbQuarter: state.indexByHizbQuarter
+  };
+}
+
+function clonePointer(pointer) {
+  return { ...pointer };
+}
+
+function unitKey(unit) {
+  if (!unit?.length) return "empty";
+  return `${state.settings.mode}:${unit[0].number}-${unit[unit.length - 1].number}`;
 }
 
 function step(dir, options = {}) {
@@ -162,6 +312,14 @@ function normalizePointer() {
 }
 
 function renderAndSave() {
+  if (document.body.classList.contains("focus-mode")) {
+    saveSettings(state.settings);
+    savePointer(state.pointer);
+    updateReadingModeChip();
+    refreshNotificationSchedule();
+    refreshWirdWidget().catch?.(console.warn);
+    return;
+  }
   renderReader(state);
   saveSettings(state.settings);
   savePointer(state.pointer);

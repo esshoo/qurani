@@ -81,10 +81,15 @@
 .main.tafsir-expanded .reader { flex-basis: 50%; }
 .main.tafsir-expanded .tafsir { flex-basis: 50%; max-width: none; }
 
-/* v0.3 Focus mode */
+/* v0.8.8 Focus mode: continuous scroll reader */
+html.focus-mode,
+body.focus-mode {
+  background: var(--paper);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 body.focus-mode {
   grid-template-rows: 1fr;
-  background: var(--paper);
 }
 body.focus-mode .topbar,
 body.focus-mode .bottombar,
@@ -94,62 +99,101 @@ body.focus-mode .tafsir {
 body.focus-mode .main {
   padding: 0;
   gap: 0;
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
 }
 body.focus-mode .reader {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: block;
+  inline-size: 100vw;
+  block-size: 100dvh;
+  max-block-size: 100dvh;
+  min-height: 100dvh;
+  overflow-y: auto !important;
+  overflow-x: hidden;
   border: 0;
   border-radius: 0;
-  min-height: 100dvh;
-  padding-block: clamp(18px, 5vw, 56px);
+  padding-block: clamp(64px, 9vw, 96px) clamp(28px, 8vw, 72px);
+  padding-inline: clamp(14px, 4vw, 42px);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+}
+body.focus-mode .reader-inner {
+  max-inline-size: min(980px, 100%);
+  margin-inline: auto;
 }
 .focus-controls[hidden] { display: none !important; }
 .focus-controls {
   position: fixed;
-  inset-inline: 50%;
-  transform: translateX(50%);
-  bottom: max(16px, env(safe-area-inset-bottom));
-  z-index: 2500;
+  top: max(12px, env(safe-area-inset-top));
+  inset-inline-end: max(12px, env(safe-area-inset-right));
+  z-index: 2600;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--card), transparent 7%);
-  border-radius: 999px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
 }
-.focus-exit,
-.focus-navbtn {
+.focus-exit {
+  pointer-events: auto;
   border: 1px solid var(--line);
-  background: var(--soft);
+  background: color-mix(in srgb, var(--card), transparent 5%);
   color: var(--ink);
   border-radius: 999px;
   padding: 10px 15px;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
 }
-.focus-navbtn {
-  background: color-mix(in srgb, var(--brand), transparent 86%);
-}
-.focus-exit:hover,
-.focus-navbtn:hover {
+.focus-exit:hover {
   background: var(--soft-strong);
 }
+.focus-navbtn { display: none !important; }
 
+.focus-unit {
+  padding-block: clamp(18px, 4vw, 40px);
+  border-bottom: 1px solid color-mix(in srgb, var(--line), transparent 45%);
+}
+.focus-unit:last-child {
+  border-bottom: 0;
+}
+.focus-unit-label {
+  width: fit-content;
+  margin: 0 auto 14px;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--muted);
+  font-family: var(--ui-font);
+  font-size: .92rem;
+  font-weight: 800;
+}
+.focus-bismillah {
+  margin-block: 4px 16px;
+}
 
 @media (max-width: 560px) {
-  .focus-controls[hidden] { display: none !important; }
-.focus-controls {
-    inset-inline: 8px;
-    transform: none;
-    border-radius: 18px;
+  body.focus-mode .reader {
+    padding-block-start: max(68px, calc(env(safe-area-inset-top) + 54px));
+    padding-inline: 12px;
   }
-  .focus-exit,
-  .focus-navbtn {
-    flex: 1;
-    padding-inline: 10px;
-    font-size: .92rem;
+  .focus-controls {
+    top: max(10px, env(safe-area-inset-top));
+    inset-inline-end: 10px;
+  }
+  .focus-exit {
+    padding: 9px 13px;
+    font-size: .9rem;
   }
 }
 
