@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   display: none;
-  z-index: 1200;
+  z-index: 3200;
   overflow: hidden;
 }
 .modal.open { display: grid; place-items: center; }
@@ -414,3 +414,11 @@ input[type="range"] { inline-size: 100%; }
 #updateModal .modal-panel {
   grid-template-rows: auto minmax(0, 1fr) auto;
 }
+
+
+/* v0.8.9: keep modals above the fixed focus reader */
+body.focus-mode .modal { z-index: 3200; }
+body.focus-mode .modal-backdrop { z-index: 0; }
+body.focus-mode .modal-panel,
+body.focus-mode .bottom-sheet,
+body.focus-mode .confirm-panel { z-index: 1; }

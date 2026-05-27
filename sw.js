@@ -1,5 +1,5 @@
-const CACHE_NAME = "quran-app-v0.8.8";
-const RUNTIME_CACHE = "quran-app-runtime-v0.8.8";
+const CACHE_NAME = "quran-app-v0.8.9";
+const RUNTIME_CACHE = "quran-app-runtime-v0.8.9";
 
 const CORE_ASSETS = [
   "./",

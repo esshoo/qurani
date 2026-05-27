@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  version: "0.8.8",
+  version: "0.8.9",
   dataMode: "single",
   paths: {
     // انسخ ملف quran.json بجوار index.html أو داخل data/quran.json
